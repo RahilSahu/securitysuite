@@ -5,9 +5,9 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -17,6 +17,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -24,6 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -54,40 +56,49 @@ public class MainActivity extends Activity {
     private WebView browserWeb;
     private FrameLayout stage;
     private LinearLayout browserChrome;
+    private LinearLayout browserSplit;
+    private LinearLayout splitPanel;
     private EditText urlInput;
-    private ToggleButton interceptToggle;
-    private ToggleButton modeToggle;
-    private ToggleButton scopeToggle;
+    private ToggleButton interceptToggle, modeToggle, scopeToggle;
+    private Button layoutBtn;
+    private int layoutMode = 0; // 0 split, 1 browser full, 2 panel full
 
-    private LinearLayout sheet;
-    private TextView sheetText;
+    // Split interceptor panel
+    private TextView splitStatus;
+    private Spinner queueSpinner;
+    private ArrayAdapter<String> queueSpinAdapter;
+    private final List<String> queueSpinLabels = new ArrayList<>();
+    private EditText spUrl, spHeaders, spBody;
+    private TextView spResponse;
+    private FrameLayout spContent;
+    private LinearLayout spReqBox;
+    private ScrollView spRespBox;
+    private Button spReqTab, spRespTab;
+    private Entry selectedEntry;
+    private boolean followLatest = true;
 
+    // History
     private LinearLayout historyPanel;
     private ListView historyList;
     private TextView historyInfo;
     private ArrayAdapter<String> historyAdapter;
     private final List<String> historyLabels = new ArrayList<>();
 
-    private LinearLayout interceptPanel;
-    private ListView queueList;
-    private TextView interceptInfo;
-    private ArrayAdapter<String> queueAdapter;
-    private final List<String> queueLabels = new ArrayList<>();
-
-    private LinearLayout editorPanel;
-    private EditText edUrl, edHeaders, edBody;
-    private TextView edTitle;
-    private Entry editingEntry;
-
+    // Detail
     private LinearLayout detailPanel;
     private TextView detailText;
     private Entry detailEntry;
 
+    // Repeater
     private LinearLayout repeaterPanel;
     private EditText rpMethod, rpUrl, rpHeaders, rpBody, rpResponse;
 
-    private Button tabSuite, tabBrowser, tabIntercept, tabHistory, tabRepeater;
-    private int currentTab = 0; // 0 suite, 1 browser, 2 intercept, 3 history, 4 repeater
+    // Rules
+    private LinearLayout rulesPanel;
+    private EditText ruSkipHosts, ruSkipIps, ruSkipPaths, ruSkipExts, ruSkipMethods, ruOnlyHosts;
+
+    private Button tabSuite, tabBrowser, tabHistory, tabRepeater, tabRules;
+    private int currentTab = 1;
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm:ss", Locale.US);
 
     public class BodyBridge {
@@ -98,12 +109,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SharedPreferences prefs = getSharedPreferences("securitysuite", MODE_PRIVATE);
+        Rules.load(prefs);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
 
-        // ---- Browser chrome: address bar + transport controls ----
+        // ---- Browser chrome ----
         browserChrome = new LinearLayout(this);
         browserChrome.setOrientation(LinearLayout.VERTICAL);
         browserChrome.setBackgroundColor(PANEL);
@@ -125,17 +138,19 @@ public class MainActivity extends Activity {
         browserChrome.addView(urlRow);
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        modeToggle = toggle("Mode: Proxy", "Mode: Native");
+        modeToggle = toggle("Proxy", "Native");
         modeToggle.setChecked(true);
-        interceptToggle = toggle("Intercept: ON", "Intercept: OFF");
+        interceptToggle = toggle("Intercept ON", "Intercept OFF");
         interceptToggle.setChecked(true);
-        scopeToggle = toggle("Scope: Smart", "Scope: All");
+        scopeToggle = toggle("Smart", "All");
         scopeToggle.setChecked(true);
+        layoutBtn = smallButton("View: Split");
+        layoutBtn.setOnClickListener(v -> cycleLayout());
         modeRow.addView(modeToggle);
         modeRow.addView(interceptToggle);
         modeRow.addView(scopeToggle);
+        modeRow.addView(layoutBtn);
         browserChrome.addView(modeRow);
-        browserChrome.setVisibility(View.GONE);
         root.addView(browserChrome);
 
         // ---- Stage ----
@@ -143,29 +158,31 @@ public class MainActivity extends Activity {
         stage.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(stage);
 
-        suiteWeb = makeWebView(false);
+        suiteWeb = makeWebView();
         suiteWeb.setWebViewClient(new WebViewClient());
         suiteWeb.loadUrl(SUITE_URL);
         stage.addView(suiteWeb);
 
-        browserWeb = makeWebView(true);
+        // ---- Split: browser top, interceptor bottom ----
+        browserSplit = new LinearLayout(this);
+        browserSplit.setOrientation(LinearLayout.VERTICAL);
+        browserWeb = makeWebView();
         browserWeb.addJavascriptInterface(new BodyBridge(), "SSBridge");
-        browserWeb.setVisibility(View.GONE);
         browserWeb.setWebViewClient(new ProxyClient());
-        stage.addView(browserWeb);
+        browserWeb.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        browserSplit.addView(browserWeb);
+        buildSplitPanel();
+        browserSplit.addView(splitPanel);
+        stage.addView(browserSplit);
 
         buildHistoryPanel();
-        buildInterceptPanel();
-        buildEditorPanel();
         buildDetailPanel();
         buildRepeaterPanel();
-        buildSheet();
+        buildRulesPanel(prefs);
         stage.addView(historyPanel);
-        stage.addView(interceptPanel);
         stage.addView(repeaterPanel);
+        stage.addView(rulesPanel);
         stage.addView(detailPanel);
-        stage.addView(editorPanel);
-        stage.addView(sheet);
 
         // ---- Bottom tabs ----
         LinearLayout tabs = new LinearLayout(this);
@@ -173,64 +190,233 @@ public class MainActivity extends Activity {
         tabs.setBackgroundColor(PANEL);
         tabSuite = tab("Suite");
         tabBrowser = tab("Browser");
-        tabIntercept = tab("Intercept");
         tabHistory = tab("History");
         tabRepeater = tab("Repeater");
+        tabRules = tab("Rules");
         tabSuite.setOnClickListener(v -> showTab(0));
         tabBrowser.setOnClickListener(v -> showTab(1));
-        tabIntercept.setOnClickListener(v -> showTab(2));
         tabHistory.setOnClickListener(v -> showTab(3));
         tabRepeater.setOnClickListener(v -> showTab(4));
+        tabRules.setOnClickListener(v -> showTab(5));
         tabs.addView(tabSuite);
         tabs.addView(tabBrowser);
-        tabs.addView(tabIntercept);
         tabs.addView(tabHistory);
         tabs.addView(tabRepeater);
+        tabs.addView(tabRules);
         root.addView(tabs);
 
         setContentView(root);
         Store.addListener(() -> runOnUiThread(this::refreshUi));
-        showTab(0);
+        showTab(1);
         refreshUi();
     }
 
-    // ================= Panels =================
+    // ================= Split interceptor panel =================
 
-    private void buildSheet() {
-        sheet = new LinearLayout(this);
-        sheet.setOrientation(LinearLayout.VERTICAL);
-        sheet.setBackgroundColor(PANEL2);
-        sheet.setPadding(14, 10, 14, 10);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.BOTTOM;
-        sheet.setLayoutParams(lp);
-        TextView title = new TextView(this);
-        title.setText("INTERCEPTED REQUEST");
-        title.setTextColor(ORANGE);
-        title.setTextSize(12);
-        sheet.addView(title);
-        sheetText = new TextView(this);
-        sheetText.setTextColor(TEXT);
-        sheetText.setTextSize(12);
-        sheet.addView(sheetText);
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
+    private void buildSplitPanel() {
+        splitPanel = new LinearLayout(this);
+        splitPanel.setOrientation(LinearLayout.VERTICAL);
+        splitPanel.setBackgroundColor(PANEL);
+        splitPanel.setPadding(10, 6, 10, 6);
+        splitPanel.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout actionRow = new LinearLayout(this);
+        actionRow.setOrientation(LinearLayout.HORIZONTAL);
+        splitStatus = new TextView(this);
+        splitStatus.setTextColor(ORANGE);
+        splitStatus.setTextSize(12);
+        splitStatus.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        splitStatus.setText("Interceptor ready");
         Button fwd = smallButton("Forward");
-        fwd.setOnClickListener(v -> { Entry e = Store.firstHeld(); if (e != null) { e.dropDecision = false; e.latch.countDown(); } });
+        fwd.setOnClickListener(v -> forwardSelected());
+        Button fwdAll = smallButton("Forward All");
+        fwdAll.setOnClickListener(v -> forwardAll(false));
         Button drop = smallButton("Drop");
-        drop.setOnClickListener(v -> { Entry e = Store.firstHeld(); if (e != null) { e.dropDecision = true; e.latch.countDown(); } });
-        Button edit = smallButton("Edit");
-        edit.setOnClickListener(v -> { Entry e = Store.firstHeld(); if (e != null) { openEditor(e); showTab(2); } });
-        row.addView(fwd);
-        row.addView(drop);
-        row.addView(edit);
-        sheet.addView(row);
-        sheet.setVisibility(View.GONE);
+        drop.setOnClickListener(v -> dropSelected());
+        Button dropAll = smallButton("Drop All");
+        dropAll.setOnClickListener(v -> forwardAll(true));
+        actionRow.addView(splitStatus);
+        actionRow.addView(fwd);
+        actionRow.addView(fwdAll);
+        actionRow.addView(drop);
+        actionRow.addView(dropAll);
+        splitPanel.addView(actionRow);
+
+        queueSpinner = new Spinner(this);
+        queueSpinAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, queueSpinLabels);
+        queueSpinAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        queueSpinner.setAdapter(queueSpinAdapter);
+        queueSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
+                Entry e = entryAtSpinnerPos(pos);
+                if (e != null) { followLatest = false; selectEntry(e, false); }
+            }
+            @Override public void onNothingSelected(AdapterView<?> p) { }
+        });
+        splitPanel.addView(queueSpinner);
+
+        LinearLayout tabRow = new LinearLayout(this);
+        tabRow.setOrientation(LinearLayout.HORIZONTAL);
+        spReqTab = smallButton("Request");
+        spRespTab = smallButton("Response");
+        spReqTab.setOnClickListener(v -> showSplitContent(true));
+        spRespTab.setOnClickListener(v -> showSplitContent(false));
+        Button save = smallButton("Save edits");
+        save.setOnClickListener(v -> saveSplitEdits());
+        Button toRep = smallButton("To Repeater");
+        toRep.setOnClickListener(v -> { if (selectedEntry != null) openRepeater(selectedEntry); });
+        tabRow.addView(spReqTab);
+        tabRow.addView(spRespTab);
+        tabRow.addView(save);
+        tabRow.addView(toRep);
+        splitPanel.addView(tabRow);
+
+        spContent = new FrameLayout(this);
+        spContent.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        spReqBox = new LinearLayout(this);
+        spReqBox.setOrientation(LinearLayout.VERTICAL);
+        spUrl = field("URL");
+        spUrl.setSingleLine(true);
+        spHeaders = field("Headers: Name: value, one per line");
+        spHeaders.setMinLines(2);
+        spBody = field("Body");
+        spBody.setMinLines(2);
+        spReqBox.addView(spUrl);
+        spReqBox.addView(spHeaders);
+        spReqBox.addView(spBody);
+        spContent.addView(spReqBox);
+        spRespBox = new ScrollView(this);
+        spResponse = new TextView(this);
+        spResponse.setTextColor(TEXT);
+        spResponse.setTextSize(12);
+        spResponse.setTextIsSelectable(true);
+        spResponse.setText("No response yet. Held requests show their response here after Forward.");
+        spRespBox.addView(spResponse);
+        spRespBox.setVisibility(View.GONE);
+        spContent.addView(spRespBox);
+        splitPanel.addView(spContent);
     }
+
+    private void showSplitContent(boolean request) {
+        spReqBox.setVisibility(request ? View.VISIBLE : View.GONE);
+        spRespBox.setVisibility(request ? View.GONE : View.VISIBLE);
+        spReqTab.setTextColor(request ? ORANGE : MUTED);
+        spRespTab.setTextColor(request ? MUTED : ORANGE);
+    }
+
+    private Entry entryAtSpinnerPos(int pos) {
+        // Spinner lists held queue first, then a "latest traffic" entry
+        synchronized (Store.queue) {
+            if (pos < Store.queue.size()) return Store.queue.get(pos);
+        }
+        synchronized (Store.history) {
+            if (!Store.history.isEmpty()) return Store.history.get(0);
+        }
+        return null;
+    }
+
+    private void selectEntry(Entry e, boolean auto) {
+        selectedEntry = e;
+        spUrl.setText(e.url);
+        spHeaders.setText(e.headersToText(e.reqHeaders));
+        spBody.setText(e.reqBody == null ? "" : e.reqBody);
+        updateSplitResponse();
+        splitStatus.setText(e.state == Entry.STATE_HELD
+            ? "HELD: " + e.method + " (edit below, then Forward / Drop)"
+            : e.method + " " + (e.status != null ? e.status : "") + (auto ? " (latest)" : ""));
+    }
+
+    private void updateSplitResponse() {
+        if (selectedEntry == null) return;
+        Entry e = selectedEntry;
+        if (e.state == Entry.STATE_DROPPED) { spResponse.setText("Dropped by intercept."); return; }
+        if (e.status == null && e.error == null) { spResponse.setText(e.state == Entry.STATE_HELD ? "Held. Forward it to see the response here." : "No response captured yet."); return; }
+        String out = (e.status != null ? "HTTP " + e.status + "\n" : "")
+            + e.headersToText(e.respHeaders)
+            + "\n" + (e.respBodyText == null ? "" : e.respBodyText)
+            + (e.error != null ? "\nERROR: " + e.error : "")
+            + (e.note != null ? "\nNOTE: " + e.note : "");
+        spResponse.setText(out);
+    }
+
+    private void saveSplitEdits() {
+        if (selectedEntry == null) return;
+        if (selectedEntry.state != Entry.STATE_HELD) {
+            Toast.makeText(this, "This request was already sent. Use Repeater to resend an edited copy.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        selectedEntry.url = spUrl.getText().toString().trim();
+        selectedEntry.reqHeaders = Entry.parseHeaders(spHeaders.getText().toString());
+        String b = spBody.getText().toString();
+        if (!b.isEmpty()) selectedEntry.reqBody = b;
+        Toast.makeText(this, "Edits saved on the held request", Toast.LENGTH_SHORT).show();
+        Store.changed();
+    }
+
+    private void forwardSelected() {
+        if (selectedEntry != null && selectedEntry.state == Entry.STATE_HELD) {
+            saveSplitEditsSilent();
+            selectedEntry.dropDecision = false;
+            selectedEntry.latch.countDown();
+        } else {
+            Entry e = Store.firstHeld();
+            if (e != null) { e.dropDecision = false; e.latch.countDown(); }
+            else Toast.makeText(this, "Nothing is held right now", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void dropSelected() {
+        if (selectedEntry != null && selectedEntry.state == Entry.STATE_HELD) {
+            selectedEntry.dropDecision = true;
+            selectedEntry.latch.countDown();
+        } else {
+            Entry e = Store.firstHeld();
+            if (e != null) { e.dropDecision = true; e.latch.countDown(); }
+        }
+    }
+
+    private void saveSplitEditsSilent() {
+        if (selectedEntry == null || selectedEntry.state != Entry.STATE_HELD) return;
+        selectedEntry.url = spUrl.getText().toString().trim();
+        selectedEntry.reqHeaders = Entry.parseHeaders(spHeaders.getText().toString());
+        String b = spBody.getText().toString();
+        if (!b.isEmpty()) selectedEntry.reqBody = b;
+    }
+
+    private void forwardAll(boolean drop) {
+        List<Entry> copy;
+        synchronized (Store.queue) { copy = new ArrayList<>(Store.queue); }
+        if (copy.isEmpty()) { Toast.makeText(this, "Queue is empty", Toast.LENGTH_SHORT).show(); return; }
+        for (Entry e : copy) { e.dropDecision = drop; e.latch.countDown(); }
+        Toast.makeText(this, (drop ? "Dropped " : "Forwarded ") + copy.size() + " request(s)", Toast.LENGTH_SHORT).show();
+    }
+
+    private void cycleLayout() {
+        layoutMode = (layoutMode + 1) % 3;
+        applyLayout();
+    }
+
+    private void applyLayout() {
+        if (layoutMode == 0) {
+            browserWeb.setVisibility(View.VISIBLE);
+            splitPanel.setVisibility(View.VISIBLE);
+            layoutBtn.setText("View: Split");
+        } else if (layoutMode == 1) {
+            browserWeb.setVisibility(View.VISIBLE);
+            splitPanel.setVisibility(View.GONE);
+            layoutBtn.setText("View: Browser");
+        } else {
+            browserWeb.setVisibility(View.GONE);
+            splitPanel.setVisibility(View.VISIBLE);
+            layoutBtn.setText("View: Panel");
+        }
+    }
+
+    // ================= Other panels =================
 
     private void buildHistoryPanel() {
         historyPanel = panel();
-        historyInfo = infoText("Nothing captured yet. Browse in the Browser tab (Proxy mode) or send from Repeater.");
+        historyInfo = infoText("");
         historyPanel.addView(historyInfo);
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -254,57 +440,6 @@ public class MainActivity extends Activity {
         historyPanel.setVisibility(View.GONE);
     }
 
-    private void buildInterceptPanel() {
-        interceptPanel = panel();
-        interceptInfo = infoText("Intercept queue is empty. Turn Intercept ON in the Browser tab and browse: matching requests will wait here and in the panel over the browser.");
-        interceptPanel.addView(interceptInfo);
-        queueList = new ListView(this);
-        queueAdapter = labelAdapter(queueLabels);
-        queueList.setAdapter(queueAdapter);
-        queueList.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        queueList.setOnItemClickListener((p, v, pos, id) -> {
-            synchronized (Store.queue) {
-                if (pos < Store.queue.size()) openEditor(Store.queue.get(pos));
-            }
-        });
-        interceptPanel.addView(queueList);
-        interceptPanel.setVisibility(View.GONE);
-    }
-
-    private void buildEditorPanel() {
-        editorPanel = panel();
-        edTitle = infoText("Edit intercepted request");
-        editorPanel.addView(edTitle);
-        edUrl = field("URL");
-        edHeaders = field("Headers, one per line: Name: value");
-        edHeaders.setMinLines(4);
-        edBody = field("Body");
-        edBody.setMinLines(3);
-        editorPanel.addView(edUrl);
-        editorPanel.addView(edHeaders);
-        editorPanel.addView(edBody);
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        Button save = smallButton("Save edits");
-        save.setOnClickListener(v -> saveEdits(false));
-        Button fwd = smallButton("Save + Forward");
-        fwd.setOnClickListener(v -> saveEdits(true));
-        Button drop = smallButton("Drop");
-        drop.setOnClickListener(v -> {
-            if (editingEntry != null) { saveEdits(false); editingEntry.dropDecision = true; editingEntry.latch.countDown(); }
-            editorPanel.setVisibility(View.GONE);
-            showTab(2);
-        });
-        Button back = smallButton("Back");
-        back.setOnClickListener(v -> { editorPanel.setVisibility(View.GONE); showTab(2); });
-        row.addView(save);
-        row.addView(fwd);
-        row.addView(drop);
-        row.addView(back);
-        editorPanel.addView(row);
-        editorPanel.setVisibility(View.GONE);
-    }
-
     private void buildDetailPanel() {
         detailPanel = panel();
         LinearLayout row = new LinearLayout(this);
@@ -312,7 +447,7 @@ public class MainActivity extends Activity {
         Button back = smallButton("Back");
         back.setOnClickListener(v -> { detailPanel.setVisibility(View.GONE); showTab(3); });
         Button rep = smallButton("Send to Repeater");
-        rep.setOnClickListener(v -> { if (detailEntry != null) { openRepeater(detailEntry); } });
+        rep.setOnClickListener(v -> { if (detailEntry != null) openRepeater(detailEntry); });
         Button copy = smallButton("Copy URL");
         copy.setOnClickListener(v -> {
             if (detailEntry != null) {
@@ -338,12 +473,11 @@ public class MainActivity extends Activity {
 
     private void buildRepeaterPanel() {
         repeaterPanel = panel();
-        TextView t = infoText("Repeater: edit and send any request with the app engine. The response lands below and in History.");
-        repeaterPanel.addView(t);
+        repeaterPanel.addView(infoText("Repeater: edit and send any request with the app engine. The response lands below and in History."));
         rpMethod = field("Method (GET, POST, ...)");
         rpMethod.setText("GET");
         rpUrl = field("https://your-target.example/path");
-        rpHeaders = field("Headers, one per line: Name: value");
+        rpHeaders = field("Headers: Name: value, one per line");
         rpHeaders.setMinLines(3);
         rpBody = field("Body");
         rpBody.setMinLines(3);
@@ -363,6 +497,49 @@ public class MainActivity extends Activity {
         rpResponse.setHintTextColor(MUTED);
         repeaterPanel.addView(rpResponse);
         repeaterPanel.setVisibility(View.GONE);
+    }
+
+    private void buildRulesPanel(SharedPreferences prefs) {
+        rulesPanel = panel();
+        rulesPanel.addView(infoText("Intercept rules: matching requests are forwarded automatically without being held (still logged in History). One entry per line. Hosts support *.example.com. IPs support single addresses and CIDR like 192.168.1.0/24. Paths match any part of the URL, so /static/ also works as a directory skip."));
+        ruSkipHosts = rulesField("Skip hosts, e.g. *.google-analytics.com", prefs.getString("skipHosts", ""));
+        ruSkipIps = rulesField("Skip IPs / CIDRs, e.g. 192.168.1.0/24", prefs.getString("skipIps", ""));
+        ruSkipPaths = rulesField("Skip paths / directories, e.g. /static/ or /images/", prefs.getString("skipPaths", ""));
+        ruSkipExts = rulesField("Skip extensions, e.g. .png", prefs.getString("skipExts", ".png\n.jpg\n.jpeg\n.gif\n.webp\n.svg\n.ico\n.woff\n.woff2\n.ttf"));
+        ruSkipMethods = rulesField("Skip methods, e.g. GET", prefs.getString("skipMethods", ""));
+        ruOnlyHosts = rulesField("Only intercept these hosts (scope). Empty means all hosts.", prefs.getString("onlyHosts", ""));
+        ScrollView sv = new ScrollView(this);
+        sv.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(ruSkipHosts);
+        box.addView(ruSkipIps);
+        box.addView(ruSkipPaths);
+        box.addView(ruSkipExts);
+        box.addView(ruSkipMethods);
+        box.addView(ruOnlyHosts);
+        sv.addView(box);
+        rulesPanel.addView(sv);
+        Button save = smallButton("Save rules");
+        save.setOnClickListener(v -> {
+            Rules.skipHosts = Rules.split(ruSkipHosts.getText().toString());
+            Rules.skipIps = Rules.split(ruSkipIps.getText().toString());
+            Rules.skipPaths = Rules.split(ruSkipPaths.getText().toString());
+            Rules.skipExts = Rules.split(ruSkipExts.getText().toString());
+            Rules.skipMethods = Rules.split(ruSkipMethods.getText().toString());
+            Rules.onlyHosts = Rules.split(ruOnlyHosts.getText().toString());
+            Rules.save(prefs);
+            Toast.makeText(this, "Rules saved and active", Toast.LENGTH_SHORT).show();
+        });
+        rulesPanel.addView(save);
+        rulesPanel.setVisibility(View.GONE);
+    }
+
+    private EditText rulesField(String hint, String value) {
+        EditText e = field(hint);
+        e.setMinLines(2);
+        e.setText(value);
+        return e;
     }
 
     // ================= Helpers =================
@@ -396,6 +573,7 @@ public class MainActivity extends Activity {
     private Button smallButton(String label) {
         Button b = new Button(this);
         b.setText(label);
+        b.setTextSize(11);
         b.setTextColor(TEXT);
         b.setBackgroundColor(PANEL2);
         return b;
@@ -413,6 +591,7 @@ public class MainActivity extends Activity {
         ToggleButton t = new ToggleButton(this);
         t.setTextOn(on);
         t.setTextOff(off);
+        t.setText(on);
         t.setTextSize(11);
         t.setTextColor(TEXT);
         t.setBackgroundColor(PANEL2);
@@ -432,7 +611,7 @@ public class MainActivity extends Activity {
         };
     }
 
-    private WebView makeWebView(boolean browser) {
+    private WebView makeWebView() {
         WebView w = new WebView(this);
         WebSettings s = w.getSettings();
         s.setJavaScriptEnabled(true);
@@ -449,19 +628,18 @@ public class MainActivity extends Activity {
 
     private void showTab(int which) {
         currentTab = which;
-        editorPanel.setVisibility(View.GONE);
         detailPanel.setVisibility(View.GONE);
         suiteWeb.setVisibility(which == 0 ? View.VISIBLE : View.GONE);
-        browserWeb.setVisibility(which == 1 ? View.VISIBLE : View.GONE);
+        browserSplit.setVisibility(which == 1 ? View.VISIBLE : View.GONE);
         historyPanel.setVisibility(which == 3 ? View.VISIBLE : View.GONE);
-        interceptPanel.setVisibility(which == 2 ? View.VISIBLE : View.GONE);
         repeaterPanel.setVisibility(which == 4 ? View.VISIBLE : View.GONE);
+        rulesPanel.setVisibility(which == 5 ? View.VISIBLE : View.GONE);
         browserChrome.setVisibility(which == 1 ? View.VISIBLE : View.GONE);
         tabSuite.setTextColor(which == 0 ? ORANGE : MUTED);
         tabBrowser.setTextColor(which == 1 ? ORANGE : MUTED);
-        tabIntercept.setTextColor(which == 2 ? ORANGE : MUTED);
         tabHistory.setTextColor(which == 3 ? ORANGE : MUTED);
         tabRepeater.setTextColor(which == 4 ? ORANGE : MUTED);
+        tabRules.setTextColor(which == 5 ? ORANGE : MUTED);
         refreshUi();
     }
 
@@ -469,64 +647,53 @@ public class MainActivity extends Activity {
         synchronized (Store.history) {
             historyLabels.clear();
             for (Entry e : Store.history) historyLabels.add(e.label());
-            historyInfo.setText(Store.history.size() + " entries. Tap one for full request and response. In Native mode only request lines are logged, and POST bodies are not exposed by WebView.");
+            historyInfo.setText(Store.history.size() + " entries. Tap one for full request and response.");
         }
         historyAdapter.notifyDataSetChanged();
-        synchronized (Store.queue) {
-            queueLabels.clear();
-            for (Entry e : Store.queue) queueLabels.add(e.label());
-            tabIntercept.setText(Store.queue.isEmpty() ? "Intercept" : "Intercept (" + Store.queue.size() + ")");
-            interceptInfo.setText(Store.queue.isEmpty()
-                ? "Intercept queue is empty. Turn Intercept ON in the Browser tab and browse: matching requests will wait here and in the panel over the browser."
-                : Store.queue.size() + " request(s) held. Tap one to edit, forward or drop.");
-            Entry held = Store.firstHeld();
-            if (held != null && currentTab == 1) {
-                sheetText.setText(held.method + "  " + held.url + (held.reqBody != null && !held.reqBody.isEmpty() ? "\nBody: " + truncate(held.reqBody, 160) : ""));
-                sheet.setVisibility(View.VISIBLE);
-            } else {
-                sheet.setVisibility(View.GONE);
-            }
-        }
-        queueAdapter.notifyDataSetChanged();
-    }
 
-    private String truncate(String s, int n) { return s.length() <= n ? s : s.substring(0, n) + "..."; }
+        // Spinner: held queue first, then latest traffic marker
+        List<Entry> heldCopy;
+        synchronized (Store.queue) { heldCopy = new ArrayList<>(Store.queue); }
+        queueSpinLabels.clear();
+        for (Entry e : heldCopy) queueSpinLabels.add("HELD  " + e.method + "  " + e.url);
+        synchronized (Store.history) {
+            if (!Store.history.isEmpty()) queueSpinLabels.add("Latest  " + Store.history.get(0).method + "  " + Store.history.get(0).url);
+        }
+        if (queueSpinLabels.isEmpty()) queueSpinLabels.add("No traffic yet");
+        queueSpinAdapter.notifyDataSetChanged();
+        tabHistory.setText(heldCopy.isEmpty() ? "History" : "History*");
+
+        // Follow behaviour: a newly held request takes over the panel; otherwise follow latest
+        Entry first = Store.firstHeld();
+        if (first != null && (selectedEntry == null || selectedEntry.state != Entry.STATE_HELD || selectedEntry == first || followLatest)) {
+            if (selectedEntry != first) selectEntry(first, false);
+            else updateSplitResponse();
+            followLatest = false;
+        } else if (first == null) {
+            if (selectedEntry != null && selectedEntry.state == Entry.STATE_HELD) {
+                updateSplitResponse();
+                splitStatus.setText(selectedEntry.method + " " + (selectedEntry.status != null ? selectedEntry.status : "done"));
+            } else {
+                synchronized (Store.history) {
+                    if (!Store.history.isEmpty()) {
+                        Entry latest = Store.history.get(0);
+                        if (selectedEntry != latest) selectEntry(latest, true);
+                        else updateSplitResponse();
+                    }
+                }
+            }
+        } else {
+            updateSplitResponse();
+        }
+    }
 
     private void navigateBrowser() {
         String u = urlInput.getText().toString().trim();
         if (u.isEmpty()) return;
         if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://" + u;
         urlInput.setText(u);
+        followLatest = true;
         browserWeb.loadUrl(u);
-    }
-
-    private void openEditor(Entry e) {
-        editingEntry = e;
-        edTitle.setText("Edit intercepted request (held until you Forward or Drop)");
-        edUrl.setText(e.url);
-        edHeaders.setText(e.headersToText(e.reqHeaders));
-        edBody.setText(e.reqBody == null ? "" : e.reqBody);
-        showTab(2);
-        editorPanel.setVisibility(View.VISIBLE);
-        interceptPanel.setVisibility(View.GONE);
-    }
-
-    private void saveEdits(boolean forward) {
-        if (editingEntry == null) return;
-        editingEntry.url = edUrl.getText().toString().trim();
-        editingEntry.reqHeaders = Entry.parseHeaders(edHeaders.getText().toString());
-        String b = edBody.getText().toString();
-        editingEntry.reqBody = b.isEmpty() ? editingEntry.reqBody : b;
-        if (forward) {
-            editingEntry.dropDecision = false;
-            editingEntry.latch.countDown();
-            editorPanel.setVisibility(View.GONE);
-            showTab(1);
-            Toast.makeText(this, "Forwarded", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "Edits saved, request still held", Toast.LENGTH_SHORT).show();
-        }
-        Store.changed();
     }
 
     private void openDetail(Entry e) {
@@ -544,7 +711,6 @@ public class MainActivity extends Activity {
         if (e.error != null) sb.append("\n\nERROR\n").append(e.error);
         if (e.note != null) sb.append("\n\nNOTE\n").append(e.note);
         detailText.setText(sb.toString());
-        showTab(3);
         detailPanel.setVisibility(View.VISIBLE);
         historyPanel.setVisibility(View.GONE);
     }
@@ -572,20 +738,14 @@ public class MainActivity extends Activity {
         if (e.url.isEmpty()) { Toast.makeText(this, "Enter a URL first", Toast.LENGTH_SHORT).show(); return; }
         rpResponse.setText("Sending...");
         new Thread(() -> {
-            try {
-                Engine.fetch(e);
-                e.state = Entry.STATE_COMPLETED;
-            } catch (Exception ex) {
-                e.error = ex.getMessage();
-            }
+            try { Engine.fetch(e); e.state = Entry.STATE_COMPLETED; }
+            catch (Exception ex) { e.error = ex.getMessage(); }
             Store.addHistory(e);
-            runOnUiThread(() -> {
-                String out = (e.status != null ? "HTTP " + e.status + "\n" : "")
-                    + e.headersToText(e.respHeaders)
-                    + "\n" + (e.respBodyText == null ? "" : e.respBodyText)
-                    + (e.error != null ? "\nERROR: " + e.error : "");
-                rpResponse.setText(out);
-            });
+            runOnUiThread(() -> rpResponse.setText(
+                (e.status != null ? "HTTP " + e.status + "\n" : "")
+                + e.headersToText(e.respHeaders)
+                + "\n" + (e.respBodyText == null ? "" : e.respBodyText)
+                + (e.error != null ? "\nERROR: " + e.error : "")));
         }).start();
     }
 
@@ -636,7 +796,7 @@ public class MainActivity extends Activity {
             boolean proxy = modeToggle.isChecked();
             if (!proxy || e.method.equals("PATCH")) {
                 e.state = Entry.STATE_PASSTHROUGH;
-                if (e.method.equals("PATCH")) e.note = "PATCH is passed through natively: the Android HTTP engine cannot send it, so this entry is request-line only.";
+                if (e.method.equals("PATCH")) e.note = "PATCH passed through natively: the Android HTTP engine cannot send it, so this entry is request-line only.";
                 Store.addHistory(e);
                 return null;
             }
@@ -648,7 +808,10 @@ public class MainActivity extends Activity {
 
             Store.addHistory(e);
 
-            if (interceptToggle.isChecked() && shouldHold(e)) {
+            String skip = Rules.skipReason(e);
+            if (skip != null) e.note = "Not held, " + skip + ".";
+
+            if (skip == null && interceptToggle.isChecked() && shouldHold(e)) {
                 e.state = Entry.STATE_HELD;
                 Store.hold(e);
                 try { e.latch.await(120, TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
@@ -674,9 +837,7 @@ public class MainActivity extends Activity {
                 Store.changed();
                 String html = "<html><body style='background:#0a0e13;color:#e8eef5;font-family:sans-serif;padding:20px'><h3>SecuritySuite engine could not fetch this page</h3><p>"
                         + escapeHtml(e.url) + "</p><p>" + escapeHtml(String.valueOf(e.error)) + "</p><p>Try Native mode for this site, or check the target and your connection.</p></body></html>";
-                if (e.mainFrame) {
-                    return new WebResourceResponse("text/html", "utf-8", 200, "OK", null, new ByteArrayInputStream(html.getBytes()));
-                }
+                if (e.mainFrame) return new WebResourceResponse("text/html", "utf-8", 200, "OK", null, new ByteArrayInputStream(html.getBytes()));
                 return new WebResourceResponse("text/plain", "utf-8", 502, "Bad Gateway", null, new ByteArrayInputStream(new byte[0]));
             }
         }
@@ -684,7 +845,7 @@ public class MainActivity extends Activity {
         private boolean shouldHold(Entry e) {
             if (e.mainFrame) return true;
             if (e.method.equals("POST") || e.method.equals("PUT") || e.method.equals("DELETE")) return true;
-            if (!scopeToggle.isChecked()) return true; // Scope: All
+            if (!scopeToggle.isChecked()) return true; // All
             String dest = e.headerValue("Sec-Fetch-Dest");
             if (dest != null) return dest.equals("empty") || dest.equals("document") || dest.equals("iframe") || dest.equals("frame");
             String u = e.url.toLowerCase();
@@ -720,7 +881,6 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (editorPanel.getVisibility() == View.VISIBLE) { editorPanel.setVisibility(View.GONE); showTab(2); return; }
         if (detailPanel.getVisibility() == View.VISIBLE) { detailPanel.setVisibility(View.GONE); showTab(3); return; }
         WebView active = currentTab == 1 ? browserWeb : suiteWeb;
         if ((currentTab == 0 || currentTab == 1) && active != null && active.canGoBack()) active.goBack();
