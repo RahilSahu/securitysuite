@@ -20,7 +20,7 @@ echo "== javac =="
 javac --release 8 -cp "$AJAR" -d build/classes $(find src -name "*.java")
 
 echo "== dex =="
-$BT/d8 --lib "$AJAR" --output build/dex build/classes/app/securitysuite/mobile/*.class
+$BT/d8 --lib "$AJAR" --output build/dex $(find build/classes -name "*.class")
 
 echo "== package dex into apk =="
 cd build
