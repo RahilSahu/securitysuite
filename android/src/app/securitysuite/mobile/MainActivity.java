@@ -161,7 +161,7 @@ public class MainActivity extends Activity {
         brandT.setTextSize(17);
         brandT.setTypeface(Typeface.DEFAULT_BOLD);
         TextView brandV = new TextView(this);
-        brandV.setText("  mobile security toolkit v4");
+        brandV.setText("  mobile security toolkit v4.1");
         brandV.setTextColor(MUTED);
         brandV.setTextSize(11);
         brand.addView(brandT);
@@ -232,11 +232,14 @@ public class MainActivity extends Activity {
     Button tabButton(String text) {
         Button b = new Button(this);
         b.setText(text);
-        b.setTextSize(11.5f);
+        b.setTextSize(10.5f);
         b.setAllCaps(false);
+        b.setSingleLine(true);
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
         b.setTextColor(TEXT);
         b.setBackground(rounded(PANEL2, 8, BORDER));
-        b.setPadding(dp(2), dp(6), dp(2), dp(6));
+        b.setPadding(dp(1), dp(6), dp(1), dp(6));
         return b;
     }
 
@@ -245,10 +248,38 @@ public class MainActivity extends Activity {
         b.setText(text);
         b.setTextSize(11.5f);
         b.setAllCaps(false);
+        b.setSingleLine(true);
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
         b.setTextColor(TEXT);
         b.setBackground(rounded(PANEL2, 8, BORDER));
-        b.setPadding(dp(8), dp(5), dp(8), dp(5));
+        b.setPadding(dp(6), dp(5), dp(6), dp(5));
         return b;
+    }
+
+    // Spinner/list adapter with readable colours on the dark theme
+    ArrayAdapter<String> colorAdapter(java.util.List<String> items) {
+        return new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
+            @Override public View getView(int position, View convertView, ViewGroup parent) {
+                TextView t = new TextView(MainActivity.this);
+                t.setText(getItem(position));
+                t.setTextColor(TEXT);
+                t.setTextSize(12);
+                t.setSingleLine(true);
+                t.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                t.setPadding(dp(8), dp(7), dp(8), dp(7));
+                return t;
+            }
+            @Override public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                TextView t = new TextView(MainActivity.this);
+                t.setText(getItem(position));
+                t.setTextColor(TEXT);
+                t.setTextSize(12.5f);
+                t.setPadding(dp(10), dp(9), dp(10), dp(9));
+                t.setBackgroundColor(PANEL2);
+                return t;
+            }
+        };
     }
 
     Button accentButton(String text) {
@@ -292,9 +323,7 @@ public class MainActivity extends Activity {
 
     Spinner styledSpinner(String[] items) {
         Spinner s = new Spinner(this);
-        ArrayAdapter<String> a = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
-        a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        s.setAdapter(a);
+        s.setAdapter(colorAdapter(java.util.Arrays.asList(items)));
         s.setBackground(rounded(PANEL2, 8, BORDER));
         return s;
     }
@@ -341,24 +370,29 @@ public class MainActivity extends Activity {
         modeBtn.setOnClickListener(v -> {
             proxyMode = !proxyMode;
             modeBtn.setText(proxyMode ? "Mode: Proxy" : "Mode: Native");
-            browser.setWebViewClient(proxyMode ? proxyClient : new WebViewClient());
             Toast.makeText(this, proxyMode ? "Proxy engine on: traffic is captured and can be held" : "Native mode: direct browsing, no capture", Toast.LENGTH_SHORT).show();
         });
         interceptToggle = new CheckBox(this);
         interceptToggle.setText("Intercept");
         interceptToggle.setTextColor(ORANGE);
         interceptToggle.setChecked(false);
-        scopeSpinner = styledSpinner(new String[]{"Scope: Smart", "Scope: All"});
         viewModeBtn = smallButton("View: Split");
         viewModeBtn.setOnClickListener(v -> {
             viewMode = (viewMode + 1) % 3;
             applyViewMode();
         });
-        ctrl.addView(modeBtn);
+        ctrl.addView(modeBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         ctrl.addView(interceptToggle);
-        ctrl.addView(scopeSpinner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        ctrl.addView(viewModeBtn);
+        ctrl.addView(viewModeBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         browserPanel.addView(ctrl);
+
+        LinearLayout ctrl2 = new LinearLayout(this);
+        ctrl2.setOrientation(LinearLayout.HORIZONTAL);
+        ctrl2.setPadding(dp(4), 0, dp(4), dp(2));
+        ctrl2.addView(label("Hold scope:  ", 12, MUTED));
+        scopeSpinner = styledSpinner(new String[]{"Smart (pages, forms, API calls)", "All requests"});
+        ctrl2.addView(scopeSpinner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        browserPanel.addView(ctrl2);
 
         browser = new WebView(this);
         WebSettings bs = browser.getSettings();
@@ -403,13 +437,14 @@ public class MainActivity extends Activity {
         splitPanel.setPadding(dp(6), dp(4), dp(6), dp(4));
 
         LinearLayout row1 = new LinearLayout(this);
-        row1.setOrientation(LinearLayout.HORIZONTAL);
+        row1.setOrientation(LinearLayout.VERTICAL);
         splitStatus = label("Interceptor: no traffic yet", 12, ORANGE);
         splitStatus.setTypeface(Typeface.DEFAULT_BOLD);
-        row1.addView(splitStatus, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        splitStatus.setSingleLine(true);
+        splitStatus.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        row1.addView(splitStatus, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         splitSelect = new Spinner(this);
-        splitAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
-        splitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        splitAdapter = colorAdapter(new ArrayList<>());
         splitSelect.setAdapter(splitAdapter);
         splitSelect.setBackground(rounded(PANEL2, 8, BORDER));
         splitSelect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -418,7 +453,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onNothingSelected(AdapterView<?> parent) { }
         });
-        row1.addView(splitSelect, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.4f));
+        row1.addView(splitSelect, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ((LinearLayout) splitPanel).addView(row1);
 
         splitUrl = field("Request URL (editable while held)", false);
@@ -433,15 +468,17 @@ public class MainActivity extends Activity {
         tabRespBtn.setOnClickListener(v -> { showResponse = true; renderSplit(); });
         Button saveBtn = smallButton("Save edits");
         saveBtn.setOnClickListener(v -> saveSplitEdits());
-        row2.addView(tabReqBtn);
-        row2.addView(tabRespBtn);
-        row2.addView(saveBtn);
+        row2.addView(tabReqBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row2.addView(tabRespBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row2.addView(saveBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         ((LinearLayout) splitPanel).addView(row2);
 
         splitBody = label("", 11.5f, TEXT);
         splitBody.setTypeface(Typeface.MONOSPACE);
+        splitBody.setHorizontallyScrolling(false);
         ScrollView sv = new ScrollView(this);
-        sv.addView(splitBody);
+        sv.setFillViewport(true);
+        sv.addView(splitBody, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ((LinearLayout) splitPanel).addView(sv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         LinearLayout row3 = new LinearLayout(this);
@@ -454,14 +491,21 @@ public class MainActivity extends Activity {
         drop.setOnClickListener(v -> dropSelected());
         Button dropAll = smallButton("Drop All");
         dropAll.setOnClickListener(v -> dropAll());
+        row3.addView(fwd, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row3.addView(fwdAll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row3.addView(drop, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row3.addView(dropAll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        ((LinearLayout) splitPanel).addView(row3);
+
+        LinearLayout row4 = new LinearLayout(this);
+        row4.setOrientation(LinearLayout.HORIZONTAL);
         Button toRep = smallButton("To Repeater");
         toRep.setOnClickListener(v -> { if (selected != null) { sendToRepeater(selected); showTab(4); } });
-        row3.addView(fwd);
-        row3.addView(fwdAll);
-        row3.addView(drop);
-        row3.addView(dropAll);
-        row3.addView(toRep);
-        ((LinearLayout) splitPanel).addView(row3);
+        Button toInt2 = smallButton("To Intruder");
+        toInt2.setOnClickListener(v -> { if (selected != null) { sendToIntruder(selected); showTab(3); } });
+        row4.addView(toRep, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row4.addView(toInt2, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        ((LinearLayout) splitPanel).addView(row4);
     }
 
     private void renderSplit() {
@@ -665,8 +709,10 @@ public class MainActivity extends Activity {
 
         detailText = label("", 11.5f, TEXT);
         detailText.setTypeface(Typeface.MONOSPACE);
+        detailText.setHorizontallyScrolling(false);
         ScrollView sv = new ScrollView(this);
-        sv.addView(detailText);
+        sv.setFillViewport(true);
+        sv.addView(detailText, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         detailPanel.addView(sv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         root.addView(detailPanel);
     }
@@ -842,7 +888,7 @@ public class MainActivity extends Activity {
         col.addView(runRow);
 
         ListView lv = new ListView(this);
-        intruderAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, intruderLabels);
+        intruderAdapter = colorAdapter(intruderLabels);
         lv.setAdapter(intruderAdapter);
         lv.setOnItemClickListener((parent, view, position, id) -> { if (position < intruderResults.size()) openDetail(intruderResults.get(position)); });
         col.addView(lv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320)));
