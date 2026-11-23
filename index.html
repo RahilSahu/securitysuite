@@ -1,0 +1,1729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:,">
+<title>SecuritySuite - Browser Web Security Toolkit</title>
+<style>
+:root{
+  --bg:#0a0e13; --bg2:#0e141c; --panel:#121a24; --panel2:#16202e; --panel3:#1a2636;
+  --line:#223042; --line2:#2c3f57;
+  --text:#e8eef5; --muted:#9db0c3; --faint:#6b8096;
+  --orange:#ff6a1a; --orange2:#ff8a3d; --orange-dim:rgba(255,106,26,.14);
+  --green:#2fbf71; --red:#f04438; --yellow:#f5b81b; --blue:#3b9eff; --purple:#a78bfa; --teal:#2dd4bf;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  --sans:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.5}
+button,[role="button"],select,summary,input:not([type="checkbox"]){min-height:36px}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--blue)}
+h1{font-size:22px;margin:0;line-height:1.25}
+h2{font-size:17px;margin:0}
+h3{font-size:14px;margin:0}
+p{margin:0}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)} .small{font-size:13px} .tiny{font-size:12px}
+::-webkit-scrollbar{width:9px;height:9px} ::-webkit-scrollbar-thumb{background:#2a3a4f;border-radius:6px} ::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- App shell ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:228px;flex:0 0 228px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:30}
+.brand{padding:16px 16px 12px;display:flex;gap:11px;align-items:center}
+.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 40px}
+.brand-name{font-weight:800;font-size:17px;letter-spacing:.2px;line-height:1.1}
+.brand-name span{color:var(--orange)}
+.brand-ver{font-size:11px;color:var(--faint)}
+.nav{padding:6px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;flex:1}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--muted);border-radius:9px;padding:9px 11px;font-size:14px;font-weight:600;min-height:42px}
+.nav button:hover{background:var(--panel2);color:var(--text)}
+.nav button.active{background:var(--orange-dim);border-color:var(--orange);color:#fff}
+.nav .ico{width:20px;text-align:center;font-size:15px;flex:0 0 20px}
+.nav .badge{margin-left:auto;background:var(--orange);color:#fff;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px}
+.nav .badge.grey{background:var(--panel3);color:var(--muted)}
+.side-foot{padding:12px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
+.side-foot .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(10,14,19,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.topbar .proj{font-size:13px;color:var(--muted)}
+.topbar .proj b{color:var(--text)}
+.scope-input{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:13px;min-width:190px;flex:1;max-width:340px}
+.searchbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--muted);font-size:13px;min-width:170px}
+.content{padding:18px;max-width:1560px;width:100%;margin:0 auto}
+.view{display:none} .view.active{display:block}
+.auth-note{background:#2a1c08;border:1px solid #6b4a12;color:#f5cf8a;border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:16px}
+
+/* ---------- Generic UI ---------- */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card h2,.card h3{margin-bottom:10px}
+.btn{background:var(--panel3);border:1px solid var(--line2);color:var(--text);border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;justify-content:center}
+.btn:hover{border-color:var(--orange);color:#fff}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.primary:hover{background:var(--orange2)}
+.btn.danger{background:#3a1410;border-color:#7a2a20;color:#ffb4ab}
+.btn.green{background:#0f2e1e;border-color:#1f6b43;color:#7fe3ae}
+.btn.sm{padding:5px 10px;font-size:12.5px;min-height:32px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type="text"],input[type="url"],input[type="number"],select,textarea{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13.5px;font-family:inherit}
+textarea{font-family:var(--mono);font-size:13px;line-height:1.55;width:100%;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--orange);outline-offset:0;border-color:var(--orange)}
+label.fl{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:120px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;border-radius:99px;padding:2px 9px;white-space:nowrap}
+.pill.g{background:rgba(47,191,113,.15);color:#6fe3a5;border:1px solid rgba(47,191,113,.4)}
+.pill.r{background:rgba(240,68,56,.14);color:#ff9d94;border:1px solid rgba(240,68,56,.4)}
+.pill.y{background:rgba(245,184,27,.13);color:#ffd66b;border:1px solid rgba(245,184,27,.4)}
+.pill.b{background:rgba(59,158,255,.13);color:#8ec9ff;border:1px solid rgba(59,158,255,.4)}
+.pill.o{background:var(--orange-dim);color:var(--orange2);border:1px solid rgba(255,106,26,.45)}
+.pill.grey{background:var(--panel3);color:var(--muted);border:1px solid var(--line2)}
+.m{font-family:var(--mono);font-weight:800;font-size:11.5px;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.m.GET{background:rgba(59,158,255,.18);color:#8ec9ff}.m.POST{background:rgba(47,191,113,.18);color:#6fe3a5}
+.m.PUT{background:rgba(255,138,61,.18);color:#ffb27a}.m.DELETE{background:rgba(240,68,56,.18);color:#ff9d94}
+.m.PATCH{background:rgba(167,139,250,.18);color:#c9b8ff}.m.HEAD,.m.OPTIONS{background:var(--panel3);color:var(--muted)}
+.switch{position:relative;width:46px;height:26px;flex:0 0 46px;display:inline-block}
+.switch input{appearance:none;-webkit-appearance:none;width:46px;height:26px;min-height:26px;margin:0;background:var(--panel3);border:1px solid var(--line2);border-radius:99px;cursor:pointer;position:relative;transition:.15s;display:block}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#8fa5bb;transition:.15s}
+.switch input:checked{background:var(--orange);border-color:var(--orange)}
+.switch input:checked::after{left:23px;background:#fff}
+.switch input:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.switch .tr{display:none}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:99px;padding:3px;gap:2px}
+.seg button{border:none;background:transparent;color:var(--muted);border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:800;min-height:30px}
+.seg button.active{background:var(--orange);color:#fff}
+.transport-select{min-width:150px}
+.relay-note{font-size:12.5px;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;font-size:13.5px;padding:8px 12px;border-radius:6px 6px 0 0}
+.tabs button.active{color:#fff;border-bottom-color:var(--orange)}
+.codebox{background:#070b10;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.8px;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-x:auto;max-height:460px;overflow-y:auto}
+.codebox .k{color:#7dd3fc}.codebox .s{color:#a5d6a7}.codebox .n{color:#ffb27a}.codebox .cm{color:#5b7186}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th{text-align:left;color:var(--faint);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:7px 9px;border-bottom:1px solid var(--line)}
+table.tbl td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-word}
+table.tbl tr:hover td{background:var(--panel2)}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:13px}
+.kv dt{color:var(--faint);font-weight:700}.kv dd{margin:0;font-family:var(--mono);word-break:break-all}
+.stat-num{font-size:27px;font-weight:800;line-height:1.1}
+.stat-lab{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.finding{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2)}
+.finding + .finding{margin-top:9px}
+.logline{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.logline:last-child{border-bottom:none}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2a3a;border:1px solid var(--orange);color:#fff;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;z-index:99;display:none;max-width:92vw;text-align:center}
+.empty{border:1.5px dashed var(--line2);border-radius:10px;padding:22px;text-align:center;color:var(--muted);font-size:13.5px}
+details.box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:4px 14px}
+details.box summary{cursor:pointer;font-weight:700;padding:9px 0;min-height:36px}
+.hrow{display:flex;gap:8px;margin-bottom:7px}.hrow input{flex:1;min-width:0}
+.progress{height:8px;background:var(--panel3);border-radius:99px;overflow:hidden}
+.progress > div{height:100%;background:var(--orange);width:0%;transition:width .2s}
+.diff-add{background:rgba(47,191,113,.16)} .diff-del{background:rgba(240,68,56,.16)} .diff-same{color:var(--muted)}
+mark{background:var(--orange);color:#111;border-radius:3px;padding:0 2px}
+.graph-wrap{background:#0a1119;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.graph-wrap svg{width:100%;height:auto;display:block}
+.node{cursor:pointer}.node:hover circle{stroke:#fff;stroke-width:2}
+.chatlog{display:flex;flex-direction:column;gap:10px;max-height:430px;overflow-y:auto}
+.msg{border-radius:10px;padding:11px 13px;font-size:13.5px;max-width:94%}
+.msg.bot{background:var(--panel2);border:1px solid var(--line);align-self:flex-start}
+.msg.user{background:var(--orange-dim);border:1px solid rgba(255,106,26,.4);align-self:flex-end}
+.msg ul{margin:6px 0 0;padding-left:18px}.msg li{margin:3px 0}
+pre.api{font-size:12.5px}
+.footer-note{padding:16px 18px 28px;color:var(--faint);font-size:12.5px;max-width:1560px;margin:0 auto;width:100%}
+
+.url-text{word-break:break-all;overflow-wrap:anywhere;min-width:0}
+.logline .grow{min-width:0}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.browser-viewport{background:#fff;color:#14181d;border:1px solid var(--line);border-radius:10px;min-height:340px;max-height:560px;overflow:auto;padding:16px;font-size:14px;line-height:1.55}
+.browser-viewport a{color:#0b5ed7}
+.browser-viewport img{max-width:100%;height:auto}
+.browser-viewport input,.browser-viewport button,.browser-viewport select,.browser-viewport textarea{max-width:100%}
+.browser-viewport table{max-width:100%}
+@media (max-width:1100px){
+  #dashCols,#scanCols,#copCols{grid-template-columns:1fr !important}
+}
+@media (max-width:980px){
+  .g4{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:1fr} .g2{grid-template-columns:1fr}
+  #repCols{grid-template-columns:1fr !important}
+  #repCols .card{align-self:stretch !important}
+}
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .sidebar{width:100%;flex:none;height:auto;position:sticky;top:0;border-right:none;border-bottom:1px solid var(--line)}
+  .brand{padding:10px 14px 6px}
+  .nav{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px 10px 10px;-webkit-overflow-scrolling:touch}
+  .nav button{white-space:nowrap;width:auto;flex:0 0 auto}
+  .side-foot{display:none}
+  .content{padding:12px}
+  .topbar{padding:9px 12px}
+  .topbar .scope-input{flex:1 1 100%;max-width:none;min-width:0}
+  .topbar .proj{flex:1 1 auto}
+  .kv{grid-template-columns:104px 1fr}
+  .card{padding:13px;min-width:0}
+  .logline{flex-wrap:wrap}
+  .logline .grow{flex:1 1 170px}
+  .logline .hist-actions{flex:1 1 100%;justify-content:flex-start}
+  .codebox{font-size:12px;max-height:380px}
+  textarea{font-size:12.5px}
+  h1{font-size:20px}
+  .browser-viewport{min-height:280px;max-height:480px;padding:12px}
+  /* Intruder results: keep a real table, scroll it sideways inside its card instead of crushing cells */
+  .tbl-scroll table.tbl{min-width:540px}
+  .tbl-scroll table.tbl thead{display:table-header-group}
+  .tbl-scroll table.tbl{display:table;width:100%}
+  .tbl-scroll table.tbl tbody{display:table-row-group}
+  .tbl-scroll table.tbl tr{display:table-row;border:none;border-radius:0;margin:0;padding:0;background:transparent}
+  .tbl-scroll table.tbl td{display:table-cell;width:auto;border-bottom:1px solid var(--line);padding:8px 9px}
+  /* Other tables stack as cards */
+  table.tbl:not(.keep-table) thead{display:none}
+  table.tbl:not(.keep-table),table.tbl:not(.keep-table) tbody,table.tbl:not(.keep-table) tr,table.tbl:not(.keep-table) td{display:block;width:100%}
+  table.tbl:not(.keep-table) tr{border:1px solid var(--line);border-radius:10px;margin-bottom:9px;padding:4px 2px;background:var(--panel2)}
+  table.tbl:not(.keep-table) td{border-bottom:none;padding:5px 10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">🛡️</div>
+      <div>
+        <div class="brand-name">Security<span>Suite</span></div>
+        <div class="brand-ver">v1.2 · Browser Edition · Relay default</div>
+      </div>
+    </div>
+    <nav class="nav" id="mainNav" aria-label="Tools">
+      <button data-view="dashboard" class="active"><span class="ico">▦</span> Dashboard</button>
+      <button data-view="browser"><span class="ico">◎</span> Browser / Crawler</button>
+      <button data-view="proxy"><span class="ico">⇄</span> Proxy / Intercept <span class="badge grey" id="navQueueBadge" style="display:none">0</span></button>
+      <button data-view="capture"><span class="ico">⌁</span> Capture · Proxy Bridge</button>
+      <button data-view="repeater"><span class="ico">↻</span> Repeater</button>
+      <button data-view="intruder"><span class="ico">⌖</span> Intruder</button>
+      <button data-view="scanner"><span class="ico">◎</span> Scanner <span class="badge grey" id="navScanBadge" style="display:none">0</span></button>
+      <button data-view="decoder"><span class="ico">{ }</span> Decoder</button>
+      <button data-view="comparer"><span class="ico">⫿</span> Comparer</button>
+      <button data-view="sequencer"><span class="ico">#</span> Sequencer</button>
+      <button data-view="copilot"><span class="ico">✦</span> AI Copilot</button>
+      <button data-view="agent"><span class="ico">⌘</span> Agent API</button>
+      <button data-view="collections"><span class="ico">▤</span> Collections</button>
+    </nav>
+    <div class="side-foot">
+      <div><span class="dot"></span>Engine ready · Relay default</div>
+      <div style="margin-top:5px">Transport: <span id="sideTransport">Relay</span> · <span id="sideRelayHealth">Relay: unknown</span><br>Requests: <span id="sideReqCount">0</span> · Findings: <span id="sideFindCount">0</span></div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="topbar">
+      <span class="proj">Project: <b>Default Project</b></span>
+      <label class="small muted" for="scopeInput" style="font-weight:700">TARGET SCOPE</label>
+      <input class="scope-input" id="scopeInput" type="text" value="" placeholder="your-target.com" spellcheck="false" aria-label="Target scope host">
+      <label class="row small" style="font-weight:700;gap:8px">INTERCEPT
+        <span class="switch"><input type="checkbox" id="interceptToggle"><span class="tr"></span></span>
+        <span id="interceptLabel" class="pill grey">OFF</span>
+      </label>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <span class="small muted" style="font-weight:800">TRANSPORT</span>
+        <div class="seg" id="transportSeg" role="group" aria-label="Transport mode">
+          <button type="button" data-transport="relay" class="active">Relay</button>
+          <button type="button" data-transport="direct">Direct</button>
+          <button type="button" data-transport="bridge">Bridge</button>
+        </div>
+        <span id="relayHealthPill" class="pill grey">Relay: unknown</span>
+      </div>
+      <label class="small muted" style="font-weight:700">Relay endpoint <input type="text" id="relayEndpointInput" value="/api/fetch" class="mono" style="width:110px;padding:5px 8px;font-size:12px" spellcheck="false" aria-label="Relay endpoint path"></label>
+      <button class="btn sm" id="topExportBtn" type="button">⬇ Export session</button>
+    </div>
+
+    <div class="content">
+      <div class="auth-note"><b>Authorized testing only.</b> Use SecuritySuite only on systems you own or have written permission to test. <b>Transport — Relay is default in v1.2:</b> Relay asks the server relay (<span class="mono">/api/fetch</span>) to fetch public targets server-side, so normal sites like google.com work in Browser / Crawler / Repeater / Intruder without the CORS wall. Relay is for <b>public targets only</b> — it blocks localhost, private / LAN IPs and cloud metadata; use <b>Bridge</b> for LAN targets. <b>Direct</b> fetches from this browser tab and is still CORS-limited. <b>Bridge</b> uses the Proxy Bridge for device traffic on your own network. If the relay is not deployed on this host, Relay calls show “Relay unavailable” honestly and never silently fall back to Direct.</div>
+
+      <!-- ======== DASHBOARD ======== -->
+      <section class="view active" id="view-dashboard">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Dashboard</h1><p class="muted small">Attack surface, live activity and findings for the current scope.</p></div>
+          <div class="row">
+            <button class="btn" data-goto="repeater" type="button">Open Repeater</button>
+            <button class="btn primary" id="dashScanBtn" type="button">Run passive scan</button>
+          </div>
+        </div>
+        <div class="grid g4" style="margin-bottom:14px">
+          <div class="card"><div class="stat-lab">Requests captured</div><div class="stat-num" id="statReq">0</div><div class="small muted" id="statReqSub">No traffic yet</div></div>
+          <div class="card"><div class="stat-lab">Unique endpoints</div><div class="stat-num" id="statEp">0</div><div class="small muted">From proxy history + imports</div></div>
+          <div class="card"><div class="stat-lab">Findings</div><div class="stat-num" id="statFind">0</div><div class="small muted" id="statFindSub">Run the scanner to populate</div></div>
+          <div class="card"><div class="stat-lab">Avg response time</div><div class="stat-num" id="statAvg">–</div><div class="small muted" id="statAvgSub">Across completed requests</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns:1.25fr 1fr;gap:14px" id="dashCols">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Visual Attack Surface</h2>
+              <p class="small muted" style="margin-bottom:10px">Site map graph built from real captured endpoints. Tap a node to open it in Repeater. Colour = worst finding on that endpoint.</p>
+              <div class="graph-wrap" id="graphWrap"></div>
+              <div class="row small" style="margin-top:10px">
+                <span><span class="pill r">●</span> High / Critical</span><span><span class="pill y">●</span> Medium</span><span><span class="pill g">●</span> Clean / Low</span><span><span class="pill grey">●</span> Not scanned</span>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Scope Filter</h2>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+                <label class="row" style="justify-content:space-between">In-scope only <span class="switch"><input type="checkbox" id="scopeOnly" checked><span class="tr"></span></span></label>
+                <label class="row" style="justify-content:space-between">Show active endpoints only <span class="switch"><input type="checkbox" id="scopeActive"><span class="tr"></span></span></label>
+                <label class="row" style="justify-content:space-between">Exclude static files (.js, .css, images) <span class="switch"><input type="checkbox" id="scopeStatic" checked><span class="tr"></span></span></label>
+              </div>
+              <p class="small muted" style="margin-top:10px">Scope host: <span class="mono" id="scopeEcho">(not set)</span>. Out-of-scope requests are still logged, just dimmed, when "In-scope only" is off.</p>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Scan Summary</h2>
+              <div class="row" style="align-items:center;gap:18px">
+                <svg width="104" height="104" viewBox="0 0 104 104" role="img" aria-label="Findings by severity donut chart" id="donutSvg"></svg>
+                <div style="display:flex;flex-direction:column;gap:5px" id="donutLegend"></div>
+              </div>
+              <p class="small muted" style="margin-top:8px">Passive checks: security headers, CORS, cookie flags, JWT, sensitive-data patterns. <button class="btn sm" data-goto="scanner" type="button" style="margin-left:4px">Open Scanner</button></p>
+            </div>
+            <div class="card">
+              <h2>Live Event Log &amp; Proxy History</h2>
+              <div id="dashLog"></div>
+              <button class="btn sm" data-goto="proxy" type="button" style="margin-top:8px">Open full Proxy History</button>
+            </div>
+            <div class="card">
+              <h2>AI Copilot · Latest tip</h2>
+              <div id="dashTip" class="small">Send a request in Repeater and the Copilot will flag testable fields here, for example an <span class="mono">"isAdmin": false</span> in a JSON response.</div>
+              <button class="btn sm" data-goto="copilot" type="button" style="margin-top:10px">Open AI Copilot</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== PROXY ======== -->
+      <section class="view" id="view-proxy">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Proxy / Intercept</h1><p class="muted small">Capture, hold, edit, forward or drop requests. Import HAR or cURL to bring in outside traffic.</p></div>
+          <div class="row">
+            <button class="btn danger" id="proxyClearBtn" type="button">Clear history</button>
+          </div>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <h2>Intercept Queue <span class="pill o" id="queueCount">0 waiting</span></h2>
+            <p class="small muted" style="margin-bottom:10px">Turn INTERCEPT on (top bar) and requests from Repeater / Intruder pause here first. Edit the raw request, then Forward or Drop.</p>
+            <div id="queueList"></div>
+            <div id="queueEditor" style="display:none;margin-top:12px">
+              <label class="fl">Raw request (editable)
+                <textarea id="queueRaw" rows="10" spellcheck="false"></textarea>
+              </label>
+              <div class="row" style="margin-top:10px">
+                <button class="btn primary" id="queueForwardBtn" type="button">Forward →</button>
+                <button class="btn danger" id="queueDropBtn" type="button">Drop</button>
+                <button class="btn" id="queueToRepeaterBtn" type="button">Send to Repeater</button>
+                <button class="btn" id="queueToIntruderBtn" type="button">Send to Intruder</button>
+              </div>
+              <div id="queueResult" style="margin-top:10px"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Import Traffic</h2>
+              <div class="tabs" role="tablist" style="margin-bottom:10px">
+                <button class="active" data-itab="curl" type="button">cURL</button>
+                <button data-itab="har" type="button">HAR</button>
+                <button data-itab="raw" type="button">Raw HTTP</button>
+              </div>
+              <div id="itab-curl"><textarea id="importCurl" rows="5" spellcheck="false" placeholder="curl https://your-target.example/post -H 'Content-Type: application/json' -d '{&quot;a&quot;:1}'"></textarea></div>
+              <div id="itab-har" style="display:none"><textarea id="importHar" rows="5" spellcheck="false" placeholder='Paste HAR JSON: {"log":{"entries":[...]}}'></textarea></div>
+              <div id="itab-raw" style="display:none"><textarea id="importRaw" rows="5" spellcheck="false" placeholder="GET /get HTTP/1.1&#10;Host: your-target.example"></textarea></div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn primary" id="importBtn" type="button">Import into history</button>
+                <label class="btn" style="margin:0">Upload .har / .txt file <input type="file" id="importFile" accept=".har,.json,.txt" style="display:none"></label>
+              </div>
+              <p class="small muted" style="margin-top:8px" id="importMsg">Imported items appear in history below and on the Dashboard graph. They are not sent until you forward or repeat them.</p>
+            </div>
+            <div class="card">
+              <h2>Proxy History</h2>
+              <input type="text" id="historySearch" placeholder="Search traffic, status, payloads…" style="width:100%;margin-bottom:10px" aria-label="Search proxy history">
+              <div id="historyList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== REPEATER ======== -->
+      <section class="view" id="view-repeater">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Repeater</h1><p class="muted small">Craft and resend a single request. Sent via the selected transport — Relay by default.</p><div class="row" style="margin-top:8px"><label class="fl" style="flex-direction:row;align-items:center;gap:8px">Transport <select class="transport-mirror transport-select" aria-label="Transport for Repeater"><option value="relay">Relay (default)</option><option value="direct">Direct</option><option value="bridge">Bridge</option></select></label><span class="relay-note">Relay = public only · Direct = CORS applies · Bridge = LAN via Proxy Bridge</span></div></div>
+          <div class="row">
+            <button class="btn" id="repCurlBtn" type="button">Copy as cURL</button>
+            <button class="btn" id="repToIntruderBtn" type="button">Send to Intruder</button>
+            <button class="btn primary" id="repSendBtn" type="button">Send ▶</button>
+          </div>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 300px;gap:14px" id="repCols">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <div class="row">
+                <select id="repMethod" aria-label="HTTP method" style="font-weight:800">
+                  <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+                </select>
+                <input type="url" id="repUrl" class="grow mono" value="" placeholder="https://your-target.example/path" spellcheck="false" aria-label="Request URL">
+                <label class="row small" style="font-weight:700">Via intercept <span class="switch"><input type="checkbox" id="repViaIntercept"><span class="tr"></span></span></label>
+              </div>
+              <div class="tabs" style="margin-top:12px">
+                <button class="active" data-rtab="raw" type="button">Raw</button>
+                <button data-rtab="headers" type="button">Headers</button>
+                <button data-rtab="body" type="button">Body</button>
+                <button data-rtab="auth" type="button">Auth</button>
+              </div>
+              <div id="rtab-raw" style="margin-top:10px"><textarea id="repRaw" rows="11" spellcheck="false"></textarea><p class="small muted" style="margin-top:6px">Raw view is the source of truth when you Send. Editing Headers / Body / Auth rebuilds it.</p></div>
+              <div id="rtab-headers" style="display:none;margin-top:10px"><div id="repHeaders"></div><button class="btn sm" id="repAddHeaderBtn" type="button">+ Add header</button></div>
+              <div id="rtab-body" style="display:none;margin-top:10px">
+                <label class="fl">Content type <select id="repBodyType"><option value="json">application/json</option><option value="form">application/x-www-form-urlencoded</option><option value="text">text/plain</option><option value="none">No body</option></select></label>
+                <textarea id="repBody" rows="7" spellcheck="false" style="margin-top:8px" placeholder="Request body"></textarea>
+              </div>
+              <div id="rtab-auth" style="display:none;margin-top:10px">
+                <label class="fl">Auth type <select id="repAuthType"><option value="none">None</option><option value="bearer">Bearer token</option><option value="basic">Basic</option></select></label>
+                <input type="text" id="repAuthVal" placeholder="Token, or user:pass for Basic" style="width:100%;margin-top:8px" class="mono">
+              </div>
+            </div>
+            <div class="card">
+              <h2>Response <span id="repRespMeta"></span></h2>
+              <div class="tabs">
+                <button class="active" data-ptab="pretty" type="button">Pretty</button>
+                <button data-ptab="rawresp" type="button">Raw</button>
+                <button data-ptab="respheaders" type="button">Headers</button>
+              </div>
+              <div id="ptab-pretty" style="margin-top:10px"><div class="codebox" id="repRespPretty">No response yet. Press Send.</div></div>
+              <div id="ptab-rawresp" style="display:none;margin-top:10px"><div class="codebox" id="repRespRaw">—</div></div>
+              <div id="ptab-respheaders" style="display:none;margin-top:10px"><div class="codebox" id="repRespHeaders">—</div></div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn sm" id="repScanBtn" type="button">Scan this response</button>
+                <button class="btn sm" id="repCopilotBtn" type="button">Ask Copilot about it</button>
+                <span class="small muted" id="repCorsNote"></span>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="align-self:start">
+            <h2>Repeater History</h2>
+            <div id="repHistory"></div>
+            <h3 style="margin-top:16px">Saved tabs</h3>
+            <div class="row"><input type="text" id="repTabName" placeholder="Tab name" class="grow"><button class="btn sm" id="repSaveTabBtn" type="button">Save tab</button></div>
+            <div id="repTabs" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== INTRUDER ======== -->
+      <section class="view" id="view-intruder">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Intruder</h1><p class="muted small">Automated fuzzing. Mark payload positions with <span class="mono">§…§</span>, pick a payload set, run. Uses the selected transport — Relay by default, 60-request cap still applies through the relay.</p><div class="row" style="margin-top:8px"><label class="fl" style="flex-direction:row;align-items:center;gap:8px">Transport <select class="transport-mirror transport-select" aria-label="Transport for Intruder"><option value="relay">Relay (default)</option><option value="direct">Direct</option><option value="bridge">Bridge</option></select></label></div></div>
+          <span class="pill y">Rate-limited: max 60 requests / run</span>
+        </div>
+        <div class="grid g2">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Target Request</h2>
+              <div class="row" style="margin-bottom:9px">
+                <select id="intMethod" aria-label="Intruder method" style="font-weight:800"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+                <input type="url" id="intUrl" class="grow mono" value="" placeholder="https://your-target.example/anything?id=§1§" spellcheck="false" aria-label="Intruder URL">
+              </div>
+              <label class="fl">Headers (one per line) <textarea id="intHeaders" rows="3" spellcheck="false">Content-Type: application/json</textarea></label>
+              <label class="fl" style="margin-top:9px">Body <textarea id="intBody" rows="4" spellcheck="false">{"q":"§payload§"}</textarea></label>
+              <div class="row" style="margin-top:9px">
+                <button class="btn sm" id="intMarkBtn" type="button">§ Mark selection in URL</button>
+                <button class="btn sm" id="intClearMarksBtn" type="button">Clear marks</button>
+                <span class="small muted" id="intPosCount"></span>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Attack Settings</h2>
+              <div class="grid g2">
+                <label class="fl">Attack type
+                  <select id="intAttackType"><option value="sniper">Sniper (one position at a time)</option><option value="battering">Battering Ram (same payload everywhere)</option><option value="pitchfork">Pitchfork (payload sets in lockstep)</option></select>
+                </label>
+                <label class="fl">Delay between requests (ms) <input type="number" id="intDelay" value="120" min="0" max="5000"></label>
+                <label class="fl">Grep match (flag rows containing) <input type="text" id="intGrep" placeholder="e.g. admin, error, SQL"></label>
+                <label class="fl">Payload source
+                  <select id="intSource"><option value="list">Payload list below</option><option value="numbers">Numbers (range)</option></select>
+                </label>
+              </div>
+              <div id="intRangeRow" style="display:none;margin-top:10px" class="row">
+                <label class="fl grow">From <input type="number" id="intFrom" value="1"></label>
+                <label class="fl grow">To <input type="number" id="intTo" value="10"></label>
+                <label class="fl grow">Step <input type="number" id="intStep" value="1"></label>
+              </div>
+              <label class="fl" style="margin-top:10px">Payloads (one per line) <textarea id="intPayloads" rows="7" spellcheck="false"></textarea></label>
+              <div class="row" style="margin-top:9px">
+                <span class="small muted" style="font-weight:700">Built-in sets:</span>
+                <button class="btn sm" data-payloadset="sqli" type="button">SQLi</button>
+                <button class="btn sm" data-payloadset="xss" type="button">XSS</button>
+                <button class="btn sm" data-payloadset="traversal" type="button">Path traversal</button>
+                <button class="btn sm" data-payloadset="idor" type="button">IDOR numbers</button>
+                <button class="btn sm" data-payloadset="auth" type="button">Auth bypass</button>
+              </div>
+              <div class="row" style="margin-top:12px">
+                <button class="btn primary" id="intStartBtn" type="button">▶ Start attack</button>
+                <button class="btn danger" id="intStopBtn" type="button" disabled>Stop</button>
+                <span class="small muted" id="intStatus">Idle</span>
+              </div>
+              <div class="progress" style="margin-top:10px"><div id="intProgress"></div></div>
+            </div>
+          </div>
+          <div class="card" style="align-self:start">
+            <h2>Results <span class="pill grey" id="intResultCount">0</span></h2>
+            <p class="small muted" style="margin-bottom:8px">Click a row to view its response. Rows matching your grep term or with an unusual length are highlighted.</p>
+            <div class="tbl-scroll"><table class="tbl keep-table" id="intTable">
+              <thead><tr><th>#</th><th>Payload</th><th>Status</th><th>Length</th><th>Time</th><th>Flag</th></tr></thead>
+              <tbody id="intTbody"><tr><td colspan="6" class="muted">No attack run yet.</td></tr></tbody>
+            </table></div>
+            <div id="intDetail" style="margin-top:12px"></div>
+            <div class="row" style="margin-top:10px"><button class="btn sm" id="intExportBtn" type="button">⬇ Export results (CSV)</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== SCANNER ======== -->
+      <section class="view" id="view-scanner">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Scanner <span class="pill b">Passive · Lite</span></h1><p class="muted small">Passive checks on real responses already captured. Responses are fetched via the selected transport (Relay default) in Repeater / Browser / Crawler, then scanned here with no extra traffic.</p><div class="row" style="margin-top:8px"><label class="fl" style="flex-direction:row;align-items:center;gap:8px">Transport context <select class="transport-mirror transport-select" aria-label="Transport for Scanner context"><option value="relay">Relay (default)</option><option value="direct">Direct</option><option value="bridge">Bridge</option></select></label></div></div>
+          <button class="btn primary" id="scanAllBtn" type="button">Scan all history</button>
+        </div>
+        <div class="grid" style="grid-template-columns:320px 1fr;gap:14px" id="scanCols">
+          <div class="card" style="align-self:start">
+            <h2>Pick a response</h2>
+            <div id="scanPickList"></div>
+            <h3 style="margin-top:16px">What gets checked</h3>
+            <ul class="small muted" style="margin:6px 0 0;padding-left:18px;line-height:1.9">
+              <li>Missing security headers (CSP, HSTS, X-Frame-Options…)</li>
+              <li>CORS misconfiguration (wildcard + credentials)</li>
+              <li>Cookie flags (HttpOnly, Secure, SameSite)</li>
+              <li>JWT issues (alg=none, missing / far-future expiry)</li>
+              <li>Sensitive data: emails, key-like tokens, stack traces</li>
+              <li>Server / tech disclosure headers</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h2>Findings <span class="pill grey" id="scanCount">0</span></h2>
+            <div id="scanResults"><div class="empty">No findings yet. Send a request in Repeater, then scan it, or use "Scan all history".</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== DECODER ======== -->
+      <section class="view" id="view-decoder">
+        <h1 style="margin-bottom:4px">Decoder &amp; Encoder</h1>
+        <p class="muted small" style="margin-bottom:14px">Base64, URL, Hex, HTML entities and full JWT inspection. Everything runs locally in this tab.</p>
+        <div class="grid g2">
+          <div class="card">
+            <label class="fl">Input <textarea id="decInput" rows="7" spellcheck="false" placeholder="Paste a token, encoded string, JWT…">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJpc0FkbWluIjpmYWxzZX0.4Adcj3UFYzPUVaVF43FmMabRwRQH8R9VlfZybLOX9A8</textarea></label>
+            <div class="row" style="margin-top:10px">
+              <button class="btn sm" data-dec="b64enc" type="button">Base64 encode</button>
+              <button class="btn sm" data-dec="b64dec" type="button">Base64 decode</button>
+              <button class="btn sm" data-dec="urlenc" type="button">URL encode</button>
+              <button class="btn sm" data-dec="urldec" type="button">URL decode</button>
+              <button class="btn sm" data-dec="hexenc" type="button">Hex encode</button>
+              <button class="btn sm" data-dec="hexdec" type="button">Hex decode</button>
+              <button class="btn sm" data-dec="html" type="button">HTML entities decode</button>
+              <button class="btn primary sm" data-dec="jwt" type="button">Decode as JWT</button>
+              <button class="btn sm" data-dec="hashid" type="button">Identify hash</button>
+            </div>
+          </div>
+          <div class="card"><h2>Output</h2><div class="codebox" id="decOutput">Pick an operation.</div><div id="decExtra" style="margin-top:10px"></div></div>
+        </div>
+      </section>
+
+      <!-- ======== COMPARER ======== -->
+      <section class="view" id="view-comparer">
+        <h1 style="margin-bottom:4px">Comparer</h1>
+        <p class="muted small" style="margin-bottom:14px">Diff two responses or payloads line by line. Handy for spotting what an IDOR or auth change actually altered.</p>
+        <div class="grid g2">
+          <div class="card"><label class="fl">Text A <textarea id="cmpA" rows="10" spellcheck="false">{"id": 101, "user": "rahil", "role": "user", "isAdmin": false}</textarea></label></div>
+          <div class="card"><label class="fl">Text B <textarea id="cmpB" rows="10" spellcheck="false">{"id": 102, "user": "admin", "role": "admin", "isAdmin": true}</textarea></label></div>
+        </div>
+        <div class="row" style="margin:12px 0"><button class="btn primary" id="cmpBtn" type="button">Compare</button><span class="small muted" id="cmpSummary"></span></div>
+        <div class="card"><h2>Diff</h2><div class="codebox" id="cmpOutput">Press Compare.</div></div>
+      </section>
+
+      <!-- ======== SEQUENCER ======== -->
+      <section class="view" id="view-sequencer">
+        <h1 style="margin-bottom:4px">Sequencer <span class="pill b">Lite</span></h1>
+        <p class="muted small" style="margin-bottom:14px">Collect session / token values from repeated real requests and score their randomness. Weak, predictable tokens are a finding.</p>
+        <div class="grid g2">
+          <div class="card">
+            <label class="fl">Token endpoint URL <input type="url" id="seqUrl" class="mono" value="" placeholder="https://your-target.example/token-endpoint" spellcheck="false"></label>
+            <label class="fl" style="margin-top:9px">Extract with regex (first capture group) <input type="text" id="seqRegex" class="mono" value="session=([A-Za-z0-9\-_]+)"></label>
+            <label class="fl" style="margin-top:9px">Samples (max 25) <input type="number" id="seqCount" value="8" min="2" max="25"></label>
+            <p class="small muted" style="margin-top:8px">Tip: point this at your target's login / token endpoint and match the token field, e.g. <span class="mono">"token":"([^"]+)"</span>.</p>
+            <button class="btn primary" id="seqBtn" type="button" style="margin-top:10px">Collect &amp; analyse</button>
+            <span class="small muted" id="seqStatus"></span>
+          </div>
+          <div class="card"><h2>Analysis</h2><div id="seqOutput"><div class="empty">No samples yet.</div></div></div>
+        </div>
+      </section>
+
+      <!-- ======== COPILOT ======== -->
+      <section class="view" id="view-copilot">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>AI Copilot</h1><p class="muted small">Local rule-based assistant in v1: it reads your actual captured requests and responses and suggests concrete next tests. No data leaves this tab.</p></div>
+          <span class="pill o">Local heuristics · v1.2</span>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 320px;gap:14px" id="copCols">
+          <div class="card">
+            <div class="chatlog" id="copLog"></div>
+            <div class="row" style="margin-top:12px">
+              <input type="text" id="copInput" class="grow" placeholder="Ask: payloads for this param? explain this response, what should I test next?">
+              <button class="btn primary" id="copSendBtn" type="button">Ask</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Quick actions</h2>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn" data-cop="analyse" type="button">Analyse last response</button>
+                <button class="btn" data-cop="payloads" type="button">Suggest payloads for last request</button>
+                <button class="btn" data-cop="idor" type="button">IDOR test plan</button>
+                <button class="btn" data-cop="checklist" type="button">Endpoint test checklist</button>
+              </div>
+            </div>
+            <div class="card"><h2>Flagged fields</h2><div id="copFlags" class="small">Nothing flagged yet. Send a request with a JSON response and testable fields (ids, roles, tokens, prices) will appear here.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== AGENT API ======== -->
+      <section class="view" id="view-agent">
+        <h1 style="margin-bottom:4px">Agent API · Give this page to any AI agent</h1>
+        <p class="muted small" style="margin-bottom:14px">SecuritySuite v1.2 exposes a real JavaScript API on <span class="mono">window.SecuritySuite</span>. Any agent that can run browser JavaScript (Playwright, Puppeteer, a browser tool) can drive the full toolkit and get structured JSON back. Default transport is <b>Relay</b>; agents can call <span class="mono">setTransport('relay'|'direct'|'bridge')</span> and read it with <span class="mono">getTransport()</span> / <span class="mono">getState().transport</span>.</p>
+        <div class="grid g2">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Copy-paste prompt for your AI agent</h2>
+              <div class="codebox" id="agentPrompt" style="max-height:300px"></div>
+              <button class="btn primary" id="agentCopyBtn" type="button" style="margin-top:10px">Copy agent prompt</button>
+            </div>
+            <div class="card">
+              <h2>API reference</h2>
+              <div class="codebox pre api" id="apiRef" style="max-height:380px"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>Live API tester</h2>
+              <p class="small muted" style="margin-bottom:8px">Runs real code against the live API in this tab.</p>
+              <label class="fl">Example call
+                <select id="apiExample">
+                  <option value="send">SecuritySuite.send() · GET request</option>
+                  <option value="state">SecuritySuite.getState()</option>
+                  <option value="history">SecuritySuite.getHistory()</option>
+                  <option value="scanall">SecuritySuite.scanAll()</option>
+                  <option value="decode">SecuritySuite.decode() · sample JWT</option>
+                  <option value="intruder">SecuritySuite.intruder() · 3 IDOR probes</option>
+                  <option value="browse">SecuritySuite.browse() · fetch-browser</option>
+                  <option value="crawl">SecuritySuite.crawl() · depth 1, 10 pages</option>
+                  <option value="transport">SecuritySuite.getTransport() + getState()</option>
+                </select>
+              </label>
+              <label class="fl" style="margin-top:9px">Target URL (for send / intruder examples) <input type="url" id="apiExampleUrl" class="mono" value="" placeholder="https://your-target.example/path" spellcheck="false"></label>
+              <label class="fl" style="margin-top:9px">Transport for tester <select id="apiTransportSelect"><option value="relay">Relay (default)</option><option value="direct">Direct</option><option value="bridge">Bridge</option></select></label>
+              <p class="small muted" style="margin-top:6px">Tester transport syncs with the top bar. Current: <span class="mono" id="apiTransportEcho">relay</span> · Relay health: <span id="apiRelayEcho">unknown</span></p>
+              <div class="row" style="margin-top:9px"><button class="btn primary" id="apiRunBtn" type="button">Run example</button><span class="small muted" id="apiRunStatus"></span></div>
+              <div class="codebox" id="apiTestOut" style="margin-top:10px;max-height:320px">Result will appear here as JSON.</div>
+            </div>
+            <div class="card">
+              <h2>Connection check</h2>
+              <dl class="kv">
+                <dt>API object</dt><dd>window.SecuritySuite</dd>
+                <dt>Version</dt><dd id="apiVer">—</dd>
+                <dt>Status</dt><dd><span class="pill g">● Live in this tab</span></dd>
+                <dt>Returns</dt><dd>Promises resolving to plain JSON objects</dd>
+                <dt>Transport</dt><dd>Relay (default) · setTransport() / getTransport()</dd>
+                <dt>Relay endpoint</dt><dd>/api/fetch (configurable in top bar)</dd>
+              </dl>
+              <p class="small muted" style="margin-top:9px">An external agent needs a browser session on this page's URL plus permission to evaluate JavaScript. The API itself needs no key and makes no calls of its own: it only runs the requests the agent asks for, via the current transport.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== BROWSER / CRAWLER ======== -->
+      <section class="view" id="view-browser">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Browser &amp; Crawler</h1><p class="muted small">Browse the target from inside SecuritySuite. The page is fetched through the selected transport, its links and forms are rewritten, and every page, click and submit is logged to Proxy History, ready for Repeater, Intruder and Scanner.</p></div>
+          <span class="pill b">Fetch-browser · v1.2 · Relay default</span>
+        </div>
+        <div class="row" style="margin-bottom:12px"><label class="fl" style="flex-direction:row;align-items:center;gap:8px">Transport <select class="transport-mirror transport-select" aria-label="Transport for Browser"><option value="relay">Relay (default) — public targets, no CORS wall</option><option value="direct">Direct — browser fetch, CORS applies</option><option value="bridge">Bridge — LAN / device traffic</option></select></label><span class="relay-note" id="browserRelayNote">Relay: public targets only. LAN / localhost → use Bridge. Relay status shown in the top bar and in the browser meta line below.</span></div>
+        <div class="auth-note" style="margin-bottom:14px"><b>How capture works here:</b> there is no iframe spying (browsers block that). SecuritySuite fetches the page via the selected transport, rewrites its links and forms, and renders it below, so navigation stays inside the engine and gets captured. In <b>Relay mode</b> the fetch happens server-side, so the old CORS-blocked message should not appear for public sites — relay errors are shown as relay errors instead. In <b>Direct mode</b> CORS still applies and blocked pages are labelled as CORS-blocked. JavaScript-heavy apps may render partially: fetched scripts never run here, so API calls a page would make from its own JavaScript are NOT captured by the fetch-browser. Hit those endpoints directly in Repeater, or capture the real app traffic with the Proxy Bridge.</div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="row">
+            <button class="btn sm" id="brBackBtn" type="button" aria-label="Back">←</button>
+            <button class="btn sm" id="brFwdBtn" type="button" aria-label="Forward">→</button>
+            <button class="btn sm" id="brReloadBtn" type="button" aria-label="Reload">↻</button>
+            <input type="url" id="brUrl" class="grow mono" value="" spellcheck="false" aria-label="Browser address bar" placeholder="https://your-target.example/page">
+            <button class="btn primary" id="brGoBtn" type="button">Go</button>
+          </div>
+          <div class="row small" style="margin-top:9px">
+            <span id="brMeta" class="muted">Nothing loaded yet. Enter your in-scope target URL above.</span>
+            <span style="margin-left:auto" class="row">
+              <button class="btn sm" id="brToRepeaterBtn" type="button">Send page request to Repeater</button>
+              <button class="btn sm" id="brViewSourceBtn" type="button">View source</button>
+            </span>
+          </div>
+          <div class="browser-viewport" id="brViewport" style="margin-top:10px"><p style="color:#5b7186">Fetched pages render here. Links stay inside SecuritySuite: clicking one fetches it through the engine and logs it to Proxy History.</p></div>
+          <div id="brSourceWrap" style="display:none;margin-top:10px"><div class="codebox" id="brSource"></div></div>
+          <div class="grid g2" style="margin-top:12px">
+            <div><h3>Links on this page <span class="pill grey" id="brLinkCount">0</span></h3><div id="brLinks" class="small" style="max-height:210px;overflow-y:auto;margin-top:6px"><span class="muted">Load a page to list its links.</span></div></div>
+            <div><h3>Forms on this page <span class="pill grey" id="brFormCount">0</span></h3><div id="brForms" class="small" style="margin-top:6px"><span class="muted">Submitting a rendered form sends it through the engine and logs it, fields included.</span></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Crawler · Build the Site Map automatically</h2>
+          <p class="small muted" style="margin-bottom:10px">Starts at a URL, follows in-scope links breadth-first, and logs every page to Proxy History. Discovered endpoints appear on the Dashboard graph and in Scanner straight away.</p>
+          <div class="grid g3">
+            <label class="fl">Start URL <input type="url" id="crUrl" class="mono" value="" placeholder="https://your-target.example/" spellcheck="false"></label>
+            <label class="fl">Max depth <select id="crDepth"><option value="1">1 (start page links)</option><option value="2" selected>2</option><option value="3">3</option></select></label>
+            <label class="fl">Max pages <select id="crMax"><option value="10">10</option><option value="25" selected>25</option><option value="50">50 (cap)</option></select></label>
+          </div>
+          <label class="row small" style="font-weight:700;margin-top:10px">Same host only <span class="switch"><input type="checkbox" id="crSameHost" checked><span class="tr"></span></span></label>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" id="crStartBtn" type="button">▶ Start crawl</button>
+            <button class="btn danger" id="crStopBtn" type="button" disabled>Stop</button>
+            <span class="small muted" id="crStatus">Idle</span>
+          </div>
+          <div class="progress" style="margin-top:10px"><div id="crProgress"></div></div>
+          <div id="crResults" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- ======== CAPTURE / PROXY BRIDGE ======== -->
+      <section class="view" id="view-capture">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Capture · Proxy Bridge</h1><p class="muted small">Capture traffic from your phone or another browser on the same network, the same way Burp does: the device sets SecuritySuite's bridge as its WiFi proxy. This is the right transport for LAN / localhost targets that Relay cannot reach.</p><div class="row" style="margin-top:8px"><label class="fl" style="flex-direction:row;align-items:center;gap:8px">Transport <select class="transport-mirror transport-select" aria-label="Transport for Capture"><option value="relay">Relay (default)</option><option value="direct">Direct</option><option value="bridge">Bridge</option></select></label><span class="relay-note">Select Bridge here when testing LAN targets.</span></div></div>
+          <span class="pill o" id="bridgeStatusPill">Bridge: not connected</span>
+        </div>
+        <div class="auth-note"><b>Plain truth:</b> a web page cannot sniff your WiFi or listen for other devices, no website can. The Bridge is a tiny Python script you run on your laptop: devices you configure send their traffic through it, it records everything, and SecuritySuite pulls the capture in live (or via HAR). It only sees devices that set the proxy, nothing else on the network. HTTP is captured in full. HTTPS is tunnelled: hostnames are logged, bodies stay encrypted unless you later add a CA, and the Bridge says so in its log.</div>
+        <div class="grid g2">
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>1 · Get the Bridge</h2>
+              <p class="small muted" style="margin-bottom:10px">Single Python file, standard library only, nothing to install. Needs Python 3 on the laptop that will act as the proxy.</p>
+              <div class="row">
+                <button class="btn primary" id="bridgeDownloadBtn" type="button">⬇ Download securitysuite_bridge.py</button>
+                <button class="btn" id="bridgeCopyBtn" type="button">Copy script</button>
+              </div>
+              <details class="box" style="margin-top:12px"><summary>View the bridge script</summary><div class="codebox" id="bridgeCode" style="max-height:340px;margin:10px 0"></div></details>
+            </div>
+            <div class="card">
+              <h2>2 · Run it &amp; point your phone at it</h2>
+              <ol class="small" style="margin:0;padding-left:19px;line-height:2">
+                <li>On your laptop (same WiFi as the phone): <span class="mono">python3 securitysuite_bridge.py</span>. It prints your laptop's LAN IP and a bridge token: keep the token, step 3 needs it.</li>
+                <li>Phone: WiFi settings → your network → Proxy: <b>Manual</b> → Host = laptop IP, Port = <span class="mono">8080</span>.</li>
+                <li>Browse or use apps on the phone. Requests flow through the Bridge and are recorded.</li>
+                <li>Connect below for live import, or press <span class="mono">Ctrl+C</span> in the Bridge to save <span class="mono">capture.har</span> and import that file in Proxy → Import Traffic.</li>
+                <li>When done, set the phone proxy back to <b>None</b>.</li>
+              </ol>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+            <div class="card">
+              <h2>3 · Connect SecuritySuite to the Bridge</h2>
+              <p class="small muted" style="margin-bottom:9px">If SecuritySuite is open on the same laptop, use <span class="mono">http://127.0.0.1:8899</span>. If it is open on the phone, use the laptop's LAN IP, e.g. <span class="mono">http://192.168.1.5:8899</span>. The page polls the Bridge every 3 seconds and imports new captures into Proxy History automatically.</p>
+              <label class="fl">Bridge address <input type="url" id="bridgeUrl" class="mono" value="http://127.0.0.1:8899" spellcheck="false"></label>
+              <label class="fl" style="margin-top:9px">Bridge token (printed by the script at startup) <input type="text" id="bridgeToken" class="mono" placeholder="e.g. 9f3ac41bd207e6aa" spellcheck="false" autocomplete="off"></label>
+              <p class="small muted" style="margin-top:7px">The token is required: the Bridge refuses capture requests without it, so other websites or devices on the LAN cannot read your captured traffic.</p>
+              <div class="row" style="margin-top:10px">
+                <button class="btn primary" id="bridgeConnectBtn" type="button">Connect</button>
+                <button class="btn danger" id="bridgeDisconnectBtn" type="button" disabled>Disconnect</button>
+                <span class="small muted" id="bridgeMsg">Not connected. Live import pulls /captures from the Bridge with its CORS header open.</span>
+              </div>
+              <dl class="kv" style="margin-top:12px">
+                <dt>Captures imported</dt><dd id="bridgeCount">0</dd>
+                <dt>Last sync</dt><dd id="bridgeLastSync">–</dd>
+                <dt>Fallback</dt><dd>HAR import in Proxy tab always works, no Bridge connection needed</dd>
+              </dl>
+            </div>
+            <div class="card">
+              <h2>What lands where</h2>
+              <ul class="small muted" style="margin:0;padding-left:18px;line-height:1.95">
+                <li>Every bridged request becomes a Proxy History entry (source: <span class="mono">proxy-bridge</span>).</li>
+                <li>From there: Forward / edit in Proxy, fuzz in Intruder, repeat in Repeater, passive-scan in Scanner, and it joins the Dashboard site map graph.</li>
+                <li>HTTPS CONNECT entries appear as host-only entries so you still see which hosts the phone talked to.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== COLLECTIONS ======== -->
+      <section class="view" id="view-collections">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <div><h1>Collections &amp; Session</h1><p class="muted small">Save useful requests into named collections for this session, and export everything as JSON to keep or share.</p></div>
+          <div class="row">
+            <button class="btn" id="colExportBtn" type="button">⬇ Export session JSON</button>
+            <label class="btn" style="margin:0">⬆ Import session <input type="file" id="colImportFile" accept=".json" style="display:none"></label>
+          </div>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <h2>Collections</h2>
+            <div class="row"><input type="text" id="colName" placeholder="New collection name" class="grow"><button class="btn primary" id="colCreateBtn" type="button">Create</button></div>
+            <div id="colList" style="margin-top:12px"></div>
+          </div>
+          <div class="card">
+            <h2>Session summary</h2>
+            <dl class="kv" id="sessionSummary"></dl>
+            <p class="small muted" style="margin-top:10px">Collections live in this tab's memory for the session. Export the JSON to keep them beyond it: the file includes history, collections, intruder results and findings, and re-imports cleanly.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="footer-note">SecuritySuite v1.2 · Browser Edition — Relay is the default transport: Browser/Crawler, Repeater, Intruder, Scanner-lite, Decoder, Comparer and Sequencer route through the server relay (<span class="mono">/api/fetch</span>) for public targets, so CORS does not block normal sites. Direct mode still runs from this tab and is CORS-limited. Relay blocks private / LAN / localhost targets — use the Proxy Bridge for those. If no relay is deployed on this host, Relay shows “Relay unavailable” honestly. For authorized testing only.</div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ================= SecuritySuite v1.2 core ================= */
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var $$ = function(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); };
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(function(){ t.style.display='none'; },2600); }
+function nowTime(){ var d=new Date(); return d.toLocaleTimeString('en-IN',{hour12:false}); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function download(name, text, type){ var b=new Blob([text],{type:type||'text/plain'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },800); }
+function copyText(txt, msg){ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ toast(msg||'Copied'); }, function(){ toast('Copy failed, select and copy manually'); }); } else { toast('Clipboard unavailable in this browser'); } }
+
+var PAYLOAD_SETS = {
+  sqli: ["' OR '1'='1", "' OR 1=1--", '" OR "1"="1', "' UNION SELECT NULL--", "' UNION SELECT NULL,NULL--", "admin'--", "' AND SLEEP(5)--", "1; DROP TABLE users--", "' OR 'x'='x", "1' ORDER BY 1--"],
+  xss: ["<script>al"+"ert(1)<\/script>", '"><svg onload=al'+"ert(1)>", "'-al"+"ert(1)-'", "<img src=x onerror=al"+"ert(1)>", "javascript:al"+"ert(1)", '"><details open ontoggle=al'+"ert(1)>", "<svg><animate onbegin=al"+"ert(1)>"],
+  traversal: ["../", "../../", "../../../etc/passwd", "..%2f..%2fetc%2fpasswd", "....//....//etc/passwd", "..\\..\\windows\\win.ini", "%2e%2e%2f%2e%2e%2fetc%2fpasswd", "/etc/passwd"],
+  idor: ["0","1","2","3","10","100","101","1000","9999","-1"],
+  auth: ["admin", "administrator", "root", "test", "guest", "user", "' OR '1'='1", "admin'--"]
+};
+
+var state = {
+  history: [],        /* {id, method, url, host, path, reqHeaders, reqBody, status, statusText, respHeaders, respBody, ms, size, source, time, error, via} */
+  queue: [],
+  findings: [],
+  repHistory: [],
+  repTabs: [],
+  collections: [],
+  intruderResults: [],
+  intruderRunning: false,
+  lastResponse: null,
+  selectedQueueId: null,
+  selectedScanId: null,
+  seq: 0,
+  transport: 'relay',
+  relayEndpoint: '/api/fetch',
+  relayHealth: 'unknown' /* unknown | ok | unreachable */
+};
+
+function hostOf(url){ try { return new URL(url).host; } catch(e){ return '(invalid URL)'; } }
+function pathOf(url){ try { var u=new URL(url); return u.pathname + u.search; } catch(e){ return url; } }
+function inScope(url){ var s=($('scopeInput').value||'').trim().toLowerCase(); if(!s) return true; return hostOf(url).toLowerCase().indexOf(s)>-1; }
+function isStatic(url){ return /\.(js|css|png|jpe?g|gif|svg|ico|woff2?|map)(\?|$)/i.test(url); }
+
+/* ---------- Transport layer (v1.2) ---------- */
+function isPrivateOrLocal(url){
+  try{ var u=new URL(url); var h=u.hostname.toLowerCase();
+    if(h==='localhost'||h==='::1'||h==='0.0.0.0'||h.endsWith('.local')) return true;
+    if(h==='169.254.169.254'||h.startsWith('169.254.')) return true;
+    var m=h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/); if(m){ var a=+m[1], b=+m[2]; if(a===127||a===10||(a===172&&b>=16&&b<=31)||(a===192&&b===168)) return true; }
+    return false;
+  }catch(e){ return false; }
+}
+function setRelayHealth(v){ state.relayHealth=v; renderTransportUI(); }
+function renderTransportUI(){
+  var t=state.transport;
+  $$('#transportSeg button').forEach(function(b){ b.classList.toggle('active', b.dataset.transport===t); });
+  $$('.transport-mirror').forEach(function(s){ if(s.value!==t) s.value=t; });
+  var pill=$('relayHealthPill'); if(pill){ var label = state.relayHealth==='ok'?'Relay: ok':state.relayHealth==='unreachable'?'Relay: unreachable':'Relay: unknown'; pill.textContent=label; pill.className='pill '+(state.relayHealth==='ok'?'g':state.relayHealth==='unreachable'?'r':'grey'); }
+  var sideT=$('sideTransport'); if(sideT) sideT.textContent = t.charAt(0).toUpperCase()+t.slice(1);
+  var sideH=$('sideRelayHealth'); if(sideH) sideH.textContent = 'Relay: '+state.relayHealth;
+  var apiSel=$('apiTransportSelect'); if(apiSel && apiSel.value!==t) apiSel.value=t;
+  var apiEcho=$('apiTransportEcho'); if(apiEcho) apiEcho.textContent=t;
+  var apiRelay=$('apiRelayEcho'); if(apiRelay) apiRelay.textContent=state.relayHealth;
+}
+function setTransport(mode, silent){
+  if(['relay','direct','bridge'].indexOf(mode)===-1) mode='relay';
+  state.transport=mode; renderTransportUI();
+  if(!silent) toast('Transport: '+mode.charAt(0).toUpperCase()+mode.slice(1)+(mode==='relay'?' (default, public targets only)':mode==='direct'?' (browser fetch, CORS applies)':' (LAN via Proxy Bridge)'));
+  return state.transport;
+}
+function getTransport(){ return state.transport; }
+/* Low-level request via current transport. Does NOT log to history.
+   Returns {status,statusText,headers,body,error,ms,via} */
+async function transportRequest(req){
+  var started=performance.now(); var via=state.transport;
+  if(via==='bridge'){
+    var bridgeConnected = typeof bridgeState!=='undefined' && !!bridgeState.timer;
+    if(!bridgeConnected){
+      return { status:null, statusText:'Bridge not connected', headers:{}, body:'', error:'Bridge mode: Proxy Bridge is not connected. Open Capture, connect the Bridge, then browse on the proxied device — captures import into Proxy History automatically. Bridge mode does not actively fetch a URL from this tab. Switch to Relay (public) or Direct to fetch this URL here.', ms:Math.round(performance.now()-started), via:'bridge' };
+    }
+    return { status:null, statusText:'Bridge mode', headers:{}, body:'', error:'Bridge mode is for captured device traffic, not active fetching. Your Bridge is connected and importing captures to Proxy History. To actively fetch this URL here, switch to Relay or Direct.', ms:Math.round(performance.now()-started), via:'bridge' };
+  }
+  if(via==='relay'){
+    if(isPrivateOrLocal(req.url)){
+      return { status:null, statusText:'Relay blocked: private target', headers:{}, body:'', error:'Relay blocked: this is a localhost / private / LAN target. The server relay only fetches public targets and blocks private IPs, localhost and cloud metadata for SSRF safety. Use Bridge mode for LAN targets: run the Proxy Bridge (Capture tab) on the same network.', ms:Math.round(performance.now()-started), via:'relay' };
+    }
+    return relayFetch(req, started);
+  }
+  /* direct */
+  try{
+    var opts={ method:(req.method||'GET').toUpperCase(), headers:req.headers||{}, redirect:'follow' };
+    if(['POST','PUT','PATCH','DELETE'].indexOf(opts.method)>-1 && req.body) opts.body=req.body;
+    var res=await fetch(req.url, opts); var text=await res.text(); var hdrs={}; res.headers.forEach(function(v,k){ hdrs[k]=v; });
+    return { status:res.status, statusText:res.statusText||'', headers:hdrs, body:text, error:null, ms:Math.round(performance.now()-started), via:'direct' };
+  }catch(err){
+    return { status:null, statusText:'Blocked / network error', headers:{}, body:'', error:String(err&&err.message?err.message:err), ms:Math.round(performance.now()-started), via:'direct' };
+  }
+}
+/* Relay client: POST JSON to relay endpoint, parse {ok,status,statusText,headers,body,timeMs,via,error} */
+async function relayFetch(req, started){
+  started = started||performance.now();
+  var endpoint = state.relayEndpoint || '/api/fetch';
+  try{
+    var res = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url:req.url, method:(req.method||'GET').toUpperCase(), headers:req.headers||{}, body:req.body||'' }) });
+    var text = await res.text();
+    var j=null; try{ j=JSON.parse(text); }catch(e){}
+    if(!j || typeof j!=='object'){
+      setRelayHealth('unreachable');
+      return { status:null, statusText:'Relay unavailable', headers:{}, body:'', error:'Relay unavailable: '+endpoint+' did not return JSON (HTTP '+res.status+'). The server relay is not deployed on this host / static preview. Nothing was fetched and no direct fallback was used. Deploy /api/fetch on the server, or switch to Direct (CORS limits apply) or Bridge (LAN).', ms:Math.round(performance.now()-started), via:'relay' };
+    }
+    setRelayHealth('ok');
+    var bodyVal = (j.body!=null? String(j.body) : (j.text!=null? String(j.text):''));
+    var errVal = j.error ? String(j.error) : null;
+    /* If relay reports ok:false with no status, surface its error */
+    if(j.ok===false && j.status==null && errVal){
+      return { status:null, statusText:'Relay error', headers:j.headers||{}, body:bodyVal, error:errVal, ms:(j.timeMs!=null?j.timeMs:Math.round(performance.now()-started)), via:'relay' };
+    }
+    return { status:(j.status!=null?j.status:res.status), statusText:j.statusText||'', headers:j.headers||j.responseHeaders||{}, body:bodyVal, error:errVal, ms:(j.timeMs!=null?j.timeMs:Math.round(performance.now()-started)), via:'relay' };
+  }catch(err){
+    setRelayHealth('unreachable');
+    return { status:null, statusText:'Relay unavailable', headers:{}, body:'', error:'Relay unavailable: could not reach '+endpoint+' ('+String(err&&err.message?err.message:err)+'). The server relay is not deployed on this host / static preview. No direct fallback was used. Deploy /api/fetch, or switch transport to Direct or Bridge.', ms:Math.round(performance.now()-started), via:'relay' };
+  }
+}
+/* Single send function used by ALL engines */
+async function doFetch(req){
+  var result = await transportRequest(req);
+  var entry = { id: uid(), method:(req.method||'GET').toUpperCase(), url:req.url, host:hostOf(req.url), path:pathOf(req.url),
+    reqHeaders:req.headers||{}, reqBody:req.body||'', status:result.status, statusText:result.statusText||'', respHeaders:result.headers||{}, respBody:result.body||'', ms:result.ms, size:new Blob([result.body||'']).size,
+    source:req.source||'repeater', time:nowTime(), error:result.error||null, via:result.via||state.transport };
+  state.history.unshift(entry);
+  if(entry.respBody || entry.status) state.lastResponse = entry;
+  if(state.history.length>200) state.history = state.history.slice(0,200);
+  refreshAll();
+  return entry;
+}
+function entryToJSON(e){
+  return { id:e.id, method:e.method, url:e.url, status:e.status, statusText:e.statusText, ms:e.ms, size:e.size,
+    requestHeaders:e.reqHeaders, requestBody:e.reqBody, responseHeaders:e.respHeaders, responseBody:(e.respBody||'').slice(0,20000), error:e.error, source:e.source, time:e.time, via:e.via||null, transport:e.via||null };
+}
+function prettyBody(body, headers){
+  if(!body) return '(empty body)';
+  var ct = (headers && (headers['content-type']||'')) || '';
+  try { if(ct.indexOf('json')>-1 || /^[\s]*[\[{]/.test(body)) return JSON.stringify(JSON.parse(body), null, 2); } catch(e){}
+  return body;
+}
+function statusPill(e){
+  if(e.error){ if(e.via==='relay') return '<span class="pill r">Relay: '+esc((e.statusText||'unavailable').slice(0,28))+'</span>'; if(e.via==='bridge') return '<span class="pill y">Bridge</span>'; return '<span class="pill r">CORS / network blocked</span>'; }
+  if(e.status==null) return '<span class="pill grey">Imported</span>';
+  var cls = e.status<300?'g':(e.status<400?'y':(e.status<500?'o':'r'));
+  return '<span class="pill '+cls+'">'+e.status+' '+esc(e.statusText||'')+'</span>'+(e.via? ' <span class="pill grey">'+esc(e.via)+'</span>':'');
+}
+function parseRawRequest(raw, fallbackUrl){
+  var lines = String(raw||'').replace(/\r\n/g,'\n').split('\n');
+  var first = (lines[0]||'').trim(); var m = first.match(/^(\w+)\s+(\S+)\s+HTTP/i);
+  var method = m? m[1].toUpperCase() : 'GET'; var target = m? m[2] : '/';
+  var headers = {}; var host=''; var bodyStart = lines.length;
+  for(var i=1;i<lines.length;i++){ if(lines[i]===''){ bodyStart=i+1; break; } var c=lines[i].indexOf(':'); if(c>0){ var k=lines[i].slice(0,c).trim(), v=lines[i].slice(i===0?0:0,0)||lines[i].slice(c+1).trim(); headers[k]=v; if(k.toLowerCase()==='host') host=v; } }
+  var body = lines.slice(bodyStart).join('\n');
+  var url = target;
+  if(!/^https?:\/\//i.test(url)){ var base = fallbackUrl || (host? 'https://'+host : ''); url = base.replace(/\/$/,'') + (target.charAt(0)==='/'?target:'/'+target); if(!host && fallbackUrl){ try{ url = new URL(target, fallbackUrl).href; }catch(e){} } }
+  return { method:method, url:url, headers:headers, body:body };
+}
+function buildRaw(method, url, headers, body){
+  var path='/'; try{ var u=new URL(url); path=u.pathname+u.search; }catch(e){}
+  var out = method+' '+path+' HTTP/1.1\n';
+  var hasHost=false; Object.keys(headers||{}).forEach(function(k){ out+=k+': '+headers[k]+'\n'; if(k.toLowerCase()==='host') hasHost=true; });
+  if(!hasHost){ try{ out+='Host: '+new URL(url).host+'\n'; }catch(e){} }
+  out+='\n'+(body||'');
+  return out;
+}
+function parseCurl(curl){
+  var s = String(curl||'').replace(/\\\n/g,' ').trim();
+  var urlM = s.match(/https?:\/\/[^\s'"]+/); var url = urlM? urlM[0] : '';
+  var method='GET'; var xm = s.match(/-X\s+(\w+)/); if(xm) method=xm[1].toUpperCase();
+  var headers={}; var hm; var hre=/ -H\s+'([^']+)'| -H\s+"([^"]+)"/g;
+  while((hm=hre.exec(s))){ var h=hm[1]||hm[2]; var c=h.indexOf(':'); if(c>0) headers[h.slice(0,c).trim()]=h.slice(c+1).trim(); }
+  var body=''; var dm = s.match(/(?:-d|--data(?:-raw)?)\s+'([^']*)'|(?:-d|--data(?:-raw)?)\s+"([^"]*)"/); if(dm){ body=dm[1]||dm[2]||''; if(method==='GET') method='POST'; }
+  return { method:method, url:url, headers:headers, body:body };
+}
+function toCurl(e){
+  var out = "curl -X "+e.method+" '"+e.url+"'";
+  Object.keys(e.reqHeaders||{}).forEach(function(k){ out += " \\\n  -H '"+k+": "+String(e.reqHeaders[k]).replace(/'/g,"'\\''")+"'"; });
+  if(e.reqBody) out += " \\\n  -d '"+String(e.reqBody).replace(/'/g,"'\\''")+"'";
+  return out;
+}
+
+/* ---------- Navigation ---------- */
+function showView(name){
+  $$('.view').forEach(function(v){ v.classList.toggle('active', v.id==='view-'+name); });
+  $$('#mainNav button').forEach(function(b){ b.classList.toggle('active', b.dataset.view===name); });
+  window.scrollTo({top:0});
+}
+$$('#mainNav button').forEach(function(b){ b.addEventListener('click', function(){ showView(b.dataset.view); }); });
+document.addEventListener('click', function(ev){ var g=ev.target.closest('[data-goto]'); if(g) showView(g.dataset.goto); });
+
+/* ---------- Dashboard ---------- */
+function severityOf(historyId){ var worst=null, rank={Critical:4,High:3,Medium:2,Low:1,Info:0};
+  state.findings.forEach(function(f){ if(f.historyId===historyId){ if(worst===null||rank[f.sev]>rank[worst]) worst=f.sev; } }); return worst; }
+function renderDashboard(){
+  var done = state.history.filter(function(e){ return e.ms!=null; });
+  var eps = {}; state.history.forEach(function(e){ eps[e.method+' '+e.host+e.path.split('?')[0]]=true; });
+  $('statReq').textContent = state.history.length;
+  $('statReqSub').textContent = state.history.length? ('Latest: '+state.history[0].method+' '+state.history[0].path.slice(0,34)) : 'No traffic yet';
+  $('statEp').textContent = Object.keys(eps).length;
+  $('statFind').textContent = state.findings.length;
+  var counts={Critical:0,High:0,Medium:0,Low:0,Info:0}; state.findings.forEach(function(f){ counts[f.sev]=(counts[f.sev]||0)+1; });
+  $('statFindSub').textContent = state.findings.length? (counts.Critical+' critical · '+counts.High+' high · '+counts.Medium+' medium · '+counts.Low+' low') : 'Run the scanner to populate';
+  $('statAvg').textContent = done.length? Math.round(done.reduce(function(a,e){return a+e.ms;},0)/done.length)+' ms' : '–';
+  $('statAvgSub').textContent = done.length? 'Across '+done.length+' timed live request(s)' : 'No timed requests yet: imported entries carry no timing, live sends populate this';
+  $('sideReqCount').textContent = state.history.length; $('sideFindCount').textContent = state.findings.length;
+  var sb=$('navScanBadge'); sb.style.display = state.findings.length? '' : 'none'; sb.textContent = state.findings.length;
+  /* donut */
+  var total = Math.max(1, state.findings.length); var segs=[['Critical','#f04438',counts.Critical],['High','#ff6a1a',counts.High],['Medium','#f5b81b',counts.Medium],['Low','#2fbf71',counts.Low],['Info','#3b9eff',counts.Info]];
+  var r=40, circ=2*Math.PI*r, off=0, circles='';
+  segs.forEach(function(sg){ if(!sg[2]) return; var frac=sg[2]/total; circles+='<circle cx="52" cy="52" r="'+r+'" fill="none" stroke="'+sg[1]+'" stroke-width="13" stroke-dasharray="'+(frac*circ-3)+' '+circ+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 52 52)"/>'; off+=frac*circ; });
+  if(!state.findings.length) circles='<circle cx="52" cy="52" r="'+r+'" fill="none" stroke="#223042" stroke-width="13"/>';
+  $('donutSvg').innerHTML = circles+'<text x="52" y="50" text-anchor="middle" fill="#e8eef5" font-size="19" font-weight="800">'+state.findings.length+'</text><text x="52" y="66" text-anchor="middle" fill="#9db0c3" font-size="10">findings</text>';
+  $('donutLegend').innerHTML = segs.map(function(sg){ return '<span class="small"><b style="color:'+sg[1]+'">▮</b> '+sg[2]+' '+sg[0]+'</span>'; }).join('');
+  /* graph */
+  renderGraph();
+  /* log */
+  var log = state.history.slice(0,6);
+  $('dashLog').innerHTML = log.length? log.map(function(e){
+    return '<div class="logline"><span class="m '+e.method+'">'+e.method+'</span><div class="grow" style="min-width:0"><div class="mono small" style="word-break:break-all">'+esc(e.path)+'</div><div class="tiny muted">'+esc(e.host)+' · '+e.time+(e.ms!=null?' · '+e.ms+' ms':'')+'</div></div>'+statusPill(e)+'<button class="btn sm" data-send-rep="'+e.id+'" type="button">To Repeater</button></div>';
+  }).join('') : '<div class="empty">No traffic yet. Send a request in Repeater, browse a target, or import a HAR / cURL in Proxy.</div>';
+  var tip = copilotAnalyse(state.lastResponse, true);
+  if(tip) $('dashTip').innerHTML = tip;
+}
+function renderGraph(){
+  var wrap=$('graphWrap'); var onlyScope=$('scopeOnly').checked, onlyActive=$('scopeActive').checked, noStatic=$('scopeStatic').checked;
+  var seen={}, nodes=[];
+  state.history.forEach(function(e){ var key=e.host+e.path.split('?')[0]; if(seen[key]) return; seen[key]=e;
+    if(onlyScope && !inScope(e.url)) return; if(noStatic && isStatic(e.url)) return; if(onlyActive && !e.status) return; nodes.push(e); });
+  nodes = nodes.slice(0,13);
+  var cx=260, cy=190, R=128, W=520, H=380;
+  var colMap={Critical:'#f04438',High:'#f04438',Medium:'#f5b81b',Low:'#2fbf71',Info:'#2fbf71'};
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Site map graph of captured endpoints">';
+  nodes.forEach(function(e,i){ var a=(i/nodes.length)*Math.PI*2 - Math.PI/2; var x=cx+Math.cos(a)*R, y=cy+Math.sin(a)*R*.78;
+    svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#2c3f57" stroke-width="1.2"/>'; });
+  svg+='<circle cx="'+cx+'" cy="'+cy+'" r="27" fill="#1a2636" stroke="#ff6a1a" stroke-width="1.6"/><text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" fill="#fff" font-size="12" font-weight="800">API</text>';
+  if(!nodes.length) svg+='<text x="'+cx+'" y="'+(cy+52)+'" text-anchor="middle" fill="#6b8096" font-size="12">No endpoints yet, send or import a request</text>';
+  nodes.forEach(function(e,i){ var a=(i/nodes.length)*Math.PI*2 - Math.PI/2; var x=cx+Math.cos(a)*R, y=cy+Math.sin(a)*R*.78;
+    var sev=severityOf(e.id); var col= sev? colMap[sev] : '#5b7d9e';
+    var label=(e.path.split('?')[0]||'/'); if(label.length>16) label=label.slice(0,15)+'…';
+    svg+='<g class="node" data-node="'+e.id+'" tabindex="0" role="button" aria-label="Open '+esc(e.path)+' in Repeater"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="11" fill="'+col+'"/><text x="'+x.toFixed(1)+'" y="'+(y+26).toFixed(1)+'" text-anchor="middle" fill="#c9d8e8" font-size="10.5">'+esc(label)+'</text>'+(sev&&(sev==='High'||sev==='Critical')?'<text x="'+x.toFixed(1)+'" y="'+(y-18).toFixed(1)+'" text-anchor="middle" fill="#ff9d94" font-size="10" font-weight="700">'+sev+'</text>':'')+'</g>'; });
+  svg+='</svg>'; wrap.innerHTML=svg;
+  $$('.node', wrap).forEach(function(n){ n.addEventListener('click', function(){ loadIntoRepeater(n.dataset.node); showView('repeater'); }); });
+}
+['scopeOnly','scopeActive','scopeStatic'].forEach(function(id){ $(id).addEventListener('change', renderDashboard); });
+$('scopeInput').addEventListener('input', function(){ $('scopeEcho').textContent = $('scopeInput').value||'(any)'; renderDashboard(); });
+
+/* ---------- Proxy ---------- */
+function renderProxy(){
+  var qb=$('navQueueBadge'); qb.style.display = state.queue.length? '' : 'none'; qb.textContent = state.queue.length;
+  $('queueCount').textContent = state.queue.length+' waiting';
+  $('queueList').innerHTML = state.queue.length? state.queue.map(function(q){
+    return '<div class="logline"><span class="m '+q.method+'">'+q.method+'</span><div class="grow" style="min-width:0"><div class="mono small" style="word-break:break-all">'+esc(q.url)+'</div><div class="tiny muted">from '+esc(q.origin)+' · held at '+q.time+'</div></div><button class="btn sm" data-queue-open="'+q.id+'" type="button">Inspect</button></div>';
+  }).join('') : '<div class="empty">Queue is empty. Turn INTERCEPT on, tick "Via intercept" in Repeater, and Send: the request lands here before it goes out.</div>';
+  renderHistory();
+}
+function renderHistory(){
+  var q=($('historySearch').value||'').toLowerCase();
+  var list = state.history.filter(function(e){ return !q || (e.method+' '+e.url+' '+(e.status||'')).toLowerCase().indexOf(q)>-1; });
+  $('historyList').innerHTML = list.length? list.slice(0,40).map(function(e){
+    var dim = $('scopeOnly').checked && !inScope(e.url);
+    return '<div class="logline" style="'+(dim?'opacity:.45':'')+'"><span class="m '+e.method+'">'+e.method+'</span><div class="grow url-text"><div class="mono small url-text">'+esc(e.host+e.path)+'</div><div class="tiny muted">'+e.time+' · '+esc(e.source)+(e.ms!=null?' · '+e.ms+' ms · '+(e.size||0)+' B':'')+(e.error?' · '+esc(e.error.slice(0,60)):'')+'</div></div>'+statusPill(e)+'<span class="row hist-actions" style="gap:5px"><button class="btn sm" data-send-rep="'+e.id+'" type="button">Repeater</button><button class="btn sm" data-send-int="'+e.id+'" type="button">Intruder</button><button class="btn sm" data-scan-one="'+e.id+'" type="button">Scan</button></span></div>';
+  }).join('') : '<div class="empty">No history matches.</div>';
+}
+$('historySearch').addEventListener('input', renderHistory);
+document.addEventListener('click', function(ev){
+  var r=ev.target.closest('[data-send-rep]'); if(r){ loadIntoRepeater(r.dataset.sendRep); showView('repeater'); return; }
+  var i2=ev.target.closest('[data-send-int]'); if(i2){ loadIntoIntruder(i2.dataset.sendInt); showView('intruder'); return; }
+  var s=ev.target.closest('[data-scan-one]'); if(s){ runScan(s.dataset.scanOne); showView('scanner'); return; }
+  var qo=ev.target.closest('[data-queue-open]'); if(qo){ openQueueItem(qo.dataset.queueOpen); return; }
+});
+function openQueueItem(id){
+  var q = state.queue.filter(function(x){ return x.id===id; })[0]; if(!q) return;
+  state.selectedQueueId=id; $('queueEditor').style.display='block'; $('queueResult').innerHTML='';
+  $('queueRaw').value = buildRaw(q.method, q.url, q.headers, q.body);
+}
+async function forwardQueue(){
+  var q = state.queue.filter(function(x){ return x.id===state.selectedQueueId; })[0]; if(!q) return;
+  var parsed = parseRawRequest($('queueRaw').value, q.url);
+  state.queue = state.queue.filter(function(x){ return x.id!==q.id; }); state.selectedQueueId=null; $('queueEditor').style.display='none';
+  $('queueResult').innerHTML='<p class="small muted">Forwarded…</p>';
+  var entry = await doFetch({ method:parsed.method, url:parsed.url, headers:parsed.headers, body:parsed.body, source:'proxy-forward' });
+  toast(entry.error? ('Forwarded via '+entry.via+': '+(entry.via==='relay'?'relay unavailable / relay error':entry.via==='bridge'?'bridge message':'blocked by CORS / network')) : 'Forwarded via '+entry.via+': '+entry.status);
+  renderProxy();
+}
+$('queueForwardBtn').addEventListener('click', forwardQueue);
+$('queueDropBtn').addEventListener('click', function(){ state.queue = state.queue.filter(function(x){ return x.id!==state.selectedQueueId; }); state.selectedQueueId=null; $('queueEditor').style.display='none'; toast('Request dropped'); renderProxy(); });
+$('queueToRepeaterBtn').addEventListener('click', function(){ var q=state.queue.filter(function(x){return x.id===state.selectedQueueId;})[0]; if(q){ setRepeater(q.method,q.url,q.headers,q.body); showView('repeater'); } });
+$('queueToIntruderBtn').addEventListener('click', function(){ var q=state.queue.filter(function(x){return x.id===state.selectedQueueId;})[0]; if(q){ setIntruder(q.method,q.url,q.headers,q.body); showView('intruder'); } });
+$('proxyClearBtn').addEventListener('click', function(){ state.history=[]; state.findings=[]; refreshAll(); toast('History cleared'); });
+/* import tabs */
+$$('[data-itab]').forEach(function(b){ b.addEventListener('click', function(){ $$('[data-itab]').forEach(function(x){ x.classList.toggle('active', x===b); }); ['curl','har','raw'].forEach(function(k){ $('itab-'+k).style.display = k===b.dataset.itab?'':'none'; }); }); });
+function importEntries(entries, label){
+  entries.forEach(function(en){ state.history.unshift({ id:uid(), method:en.method||'GET', url:en.url||'', host:hostOf(en.url||''), path:pathOf(en.url||''), reqHeaders:en.headers||{}, reqBody:en.body||'', status:en.status!=null?en.status:null, statusText:en.statusText||'', respHeaders:en.respHeaders||{}, respBody:en.respBody||'', ms:null, size:en.respBody? new Blob([en.respBody]).size:0, source:label, time:nowTime(), error:null }); });
+  if(entries.length && entries[0].respBody) state.lastResponse = state.history[0];
+  refreshAll(); return entries.length;
+}
+$('importBtn').addEventListener('click', function(){
+  var active = document.querySelector('[data-itab].active').dataset.itab; var n=0;
+  try {
+    if(active==='curl'){ var p=parseCurl($('importCurl').value); if(!p.url) throw new Error('No URL found in cURL'); n=importEntries([p],'import-curl'); }
+    else if(active==='raw'){ var r=parseRawRequest($('importRaw').value,''); if(!r.url || r.url.charAt(0)==='/') throw new Error('Raw request needs a Host header or absolute URL'); n=importEntries([r],'import-raw'); }
+    else { var har=JSON.parse($('importHar').value); var ents=(har.log&&har.log.entries)||[]; var mapped=ents.map(function(en){ var rq=en.request||{}, rs=en.response||{}; var hd={}; (rq.headers||[]).forEach(function(h){ hd[h.name]=h.value; }); var rhd={}; (rs.headers||[]).forEach(function(h){ rhd[h.name]=h.value; }); return { method:rq.method, url:rq.url, headers:hd, body:(rq.postData&&rq.postData.text)||'', status:rs.status, statusText:rs.statusText, respHeaders:rhd, respBody:(rs.content&&rs.content.text)||'' }; }); n=importEntries(mapped,'import-har'); }
+    $('importMsg').textContent='Imported '+n+' item(s) into history.'; toast('Imported '+n+' item(s)');
+  } catch(err){ $('importMsg').textContent='Import failed: '+err.message; toast('Import failed: '+err.message); }
+});
+$('importFile').addEventListener('change', function(){ var f=this.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ var txt=String(rd.result||''); try{ var har=JSON.parse(txt); var ents=(har.log&&har.log.entries)||[]; if(!ents.length) throw new Error('No HAR entries'); var mapped=ents.map(function(en){ var rq=en.request||{}, rs=en.response||{}; var hd={}; (rq.headers||[]).forEach(function(h){ hd[h.name]=h.value; }); return { method:rq.method, url:rq.url, headers:hd, body:(rq.postData&&rq.postData.text)||'', status:rs.status, statusText:rs.statusText, respBody:(rs.content&&rs.content.text)||'' }; }); var n=importEntries(mapped,'import-file'); $('importMsg').textContent='Imported '+n+' item(s) from '+f.name+'.'; } catch(e){ $('importCurl').value=txt; document.querySelector('[data-itab="curl"]').click(); $('importMsg').textContent='File was not HAR JSON, so its text was placed in the cURL box for manual import.'; } }; rd.readAsText(f); });
+
+/* ---------- Repeater ---------- */
+function setRepeater(method, url, headers, body){
+  $('repMethod').value = method||'GET'; $('repUrl').value = url||'';
+  renderRepHeaders(headers||{}); $('repBody').value = body||'';
+  syncRawFromParts();
+}
+function loadIntoRepeater(historyId){ var e=state.history.filter(function(x){return x.id===historyId;})[0]; if(e) setRepeater(e.method, e.url, e.reqHeaders, e.reqBody); }
+function renderRepHeaders(headers){
+  var keys=Object.keys(headers||{}); if(!keys.length) keys=['Content-Type'];
+  $('repHeaders').innerHTML = keys.map(function(k){ return '<div class="hrow"><input type="text" class="hk mono" value="'+esc(k)+'" placeholder="Header name" aria-label="Header name"><input type="text" class="hv mono" value="'+esc(headers[k]!=null?headers[k]:(k==='Content-Type'?'application/json':''))+'" placeholder="Value" aria-label="Header value"><button class="btn sm hdel" type="button" aria-label="Remove header">✕</button></div>'; }).join('');
+  $$('#repHeaders .hdel').forEach(function(b){ b.addEventListener('click', function(){ b.parentElement.remove(); syncRawFromParts(); }); });
+  $$('#repHeaders input').forEach(function(inp){ inp.addEventListener('input', syncRawFromParts); });
+}
+function repHeadersObj(){ var o={}; $$('#repHeaders .hrow').forEach(function(r){ var k=r.querySelector('.hk').value.trim(), v=r.querySelector('.hv').value; if(k) o[k]=v; }); return o; }
+function repAuthHeaders(){ var t=$('repAuthType').value, v=$('repAuthVal').value.trim(); if(t==='bearer'&&v) return {Authorization:'Bearer '+v}; if(t==='basic'&&v) return {Authorization:'Basic '+btoa(v)}; return {}; }
+function syncRawFromParts(){
+  var headers = Object.assign({}, repHeadersObj(), repAuthHeaders());
+  var bt=$('repBodyType').value; var body = bt==='none'? '' : $('repBody').value;
+  if(bt==='json' && body && !headers['Content-Type']) headers['Content-Type']='application/json';
+  if(bt==='form' && body) headers['Content-Type']='application/x-www-form-urlencoded';
+  $('repRaw').value = buildRaw($('repMethod').value, $('repUrl').value, headers, body);
+}
+['repMethod','repUrl','repBody','repBodyType','repAuthType','repAuthVal'].forEach(function(id){ $(id).addEventListener('input', syncRawFromParts); $(id).addEventListener('change', syncRawFromParts); });
+$('repAddHeaderBtn').addEventListener('click', function(){ var h=repHeadersObj(); h['X-Custom']=''; renderRepHeaders(h); });
+$$('[data-rtab]').forEach(function(b){ b.addEventListener('click', function(){ $$('[data-rtab]').forEach(function(x){ x.classList.toggle('active', x===b); }); ['raw','headers','body','auth'].forEach(function(k){ $('rtab-'+k).style.display = k===b.dataset.rtab?'':'none'; }); if(b.dataset.rtab!=='raw') syncRawFromParts(); }); });
+$$('[data-ptab]').forEach(function(b){ b.addEventListener('click', function(){ $$('[data-ptab]').forEach(function(x){ x.classList.toggle('active', x===b); }); ['pretty','rawresp','respheaders'].forEach(function(k){ $('ptab-'+k).style.display = k===b.dataset.ptab?'':'none'; }); }); });
+async function repeaterSend(){
+  var parsed = parseRawRequest($('repRaw').value, $('repUrl').value);
+  if($('repViaIntercept').checked || $('interceptToggle').checked){
+    state.queue.push({ id:uid(), method:parsed.method, url:parsed.url, headers:parsed.headers, body:parsed.body, origin:'repeater', time:nowTime() });
+    toast('Intercepted: held in Proxy queue'); renderProxy(); showView('proxy'); openQueueItem(state.queue[state.queue.length-1].id); return;
+  }
+  $('repRespPretty').textContent='Sending…';
+  var entry = await doFetch({ method:parsed.method, url:parsed.url, headers:parsed.headers, body:parsed.body, source:'repeater' });
+  showRepeaterResponse(entry);
+  state.repHistory.unshift(entry.id); renderRepHistory();
+}
+function showRepeaterResponse(entry){
+  $('repRespMeta').innerHTML = ' '+statusPill(entry)+(entry.ms!=null?' <span class="pill grey">'+entry.ms+' ms</span> <span class="pill grey">'+(entry.size||0)+' B</span>':'');
+  $('repRespPretty').textContent = entry.error? (entry.via==='relay' ? ('Relay request did not return a target response.\n\n'+entry.error+'\n\nVia: relay · Transport can be changed in the top bar.') : entry.via==='bridge' ? entry.error : ('Request blocked before a response came back.\n\nBrowser error: '+entry.error+'\n\nIn Direct mode this usually means the target sent no CORS header (Access-Control-Allow-Origin) for this origin, or the network failed. Switch to Relay (default) for public targets, or import the real response via HAR. The request was NOT faked.')) : prettyBody(entry.respBody, entry.respHeaders);
+  $('repRespRaw').textContent = entry.error? entry.error : entry.respBody;
+  $('repRespHeaders').textContent = Object.keys(entry.respHeaders).map(function(k){ return k+': '+entry.respHeaders[k]; }).join('\n') || '—';
+  $('repCorsNote').textContent = entry.error? (entry.via==='relay'?'Relay error shown honestly, no direct fallback was used.':'Blocked targets are labelled, never simulated.') : (entry.via? 'Via: '+entry.via : '');
+}
+function renderRepHistory(){
+  $('repHistory').innerHTML = state.repHistory.length? state.repHistory.slice(0,10).map(function(id){ var e=state.history.filter(function(x){return x.id===id;})[0]; if(!e) return ''; return '<div class="logline"><span class="m '+e.method+'">'+e.method+'</span><div class="grow" style="min-width:0"><div class="mono small" style="word-break:break-all">'+esc(e.path)+'</div><div class="tiny muted">'+e.time+'</div></div>'+statusPill(e)+'</div>'; }).join('') : '<p class="small muted">Responses you send will be listed here.</p>';
+  $('repTabs').innerHTML = state.repTabs.map(function(t,i){ return '<div class="logline"><div class="grow"><b class="small">'+esc(t.name)+'</b><div class="tiny muted mono">'+esc(t.method+' '+t.url)+'</div></div><button class="btn sm" data-tab-load="'+i+'" type="button">Load</button></div>'; }).join('') || '<p class="small muted">No saved tabs.</p>';
+}
+document.addEventListener('click', function(ev){ var t=ev.target.closest('[data-tab-load]'); if(t){ var tab=state.repTabs[+t.dataset.tabLoad]; if(tab) setRepeater(tab.method, tab.url, tab.headers, tab.body); } });
+$('repSendBtn').addEventListener('click', repeaterSend);
+$('repSaveTabBtn').addEventListener('click', function(){ var p=parseRawRequest($('repRaw').value, $('repUrl').value); state.repTabs.push({ name:$('repTabName').value||('Tab '+(state.repTabs.length+1)), method:p.method, url:p.url, headers:p.headers, body:p.body }); $('repTabName').value=''; renderRepHistory(); toast('Tab saved for this session'); });
+$('repCurlBtn').addEventListener('click', function(){ var p=parseRawRequest($('repRaw').value, $('repUrl').value); copyText(toCurl({method:p.method,url:p.url,reqHeaders:p.headers,reqBody:p.body}), 'cURL copied'); });
+$('repToIntruderBtn').addEventListener('click', function(){ var p=parseRawRequest($('repRaw').value, $('repUrl').value); setIntruder(p.method,p.url,p.headers,p.body); showView('intruder'); });
+$('repScanBtn').addEventListener('click', function(){ if(state.lastResponse){ runScan(state.lastResponse.id); showView('scanner'); } else toast('Send a request first'); });
+$('repCopilotBtn').addEventListener('click', function(){ showView('copilot'); copilotPost('analyse'); });
+
+/* ---------- Intruder ---------- */
+function setIntruder(method, url, headers, body){
+  $('intMethod').value=method||'GET'; $('intUrl').value=url||'';
+  $('intHeaders').value=Object.keys(headers||{}).map(function(k){ return k+': '+headers[k]; }).join('\n')||'Content-Type: application/json';
+  $('intBody').value=body||''; updatePosCount();
+}
+function loadIntoIntruder(id){ var e=state.history.filter(function(x){return x.id===id;})[0]; if(e) setIntruder(e.method,e.url,e.reqHeaders,e.reqBody); }
+function positionsIn(text){ var m=String(text||'').match(/§[^§]*§/g); return m? m.length:0; }
+function updatePosCount(){ var n=positionsIn($('intUrl').value)+positionsIn($('intBody').value)+positionsIn($('intHeaders').value); $('intPosCount').textContent = n? n+' position(s) marked' : 'No § positions yet: select text in the URL and use Mark, or type §value§'; }
+['intUrl','intBody','intHeaders'].forEach(function(id){ $(id).addEventListener('input', updatePosCount); });
+$('intMarkBtn').addEventListener('click', function(){ var el=$('intUrl'); var s=el.selectionStart, e2=el.selectionEnd; if(s==null||s===e2){ toast('Select part of the URL first'); return; } el.value = el.value.slice(0,s)+'§'+el.value.slice(s,e2)+'§'+el.value.slice(e2); updatePosCount(); });
+$('intClearMarksBtn').addEventListener('click', function(){ ['intUrl','intBody','intHeaders'].forEach(function(id){ $(id).value=$(id).value.replace(/§/g,''); }); updatePosCount(); });
+$$('[data-payloadset]').forEach(function(b){ b.addEventListener('click', function(){ $('intSource').value='list'; $('intRangeRow').style.display='none'; $('intPayloads').value = PAYLOAD_SETS[b.dataset.payloadset].join('\n'); toast(b.textContent+' payloads loaded ('+PAYLOAD_SETS[b.dataset.payloadset].length+')'); }); });
+$('intSource').addEventListener('change', function(){ $('intRangeRow').style.display = this.value==='numbers'?'':'none'; });
+function getPayloads(){
+  if($('intSource').value==='numbers'){ var out=[]; var f=+$('intFrom').value||0, t=+$('intTo').value||0, st=Math.max(1,+$('intStep').value||1); for(var i=f;i<=t && out.length<200;i+=st) out.push(String(i)); return out; }
+  return $('intPayloads').value.split('\n').map(function(x){return x;}).filter(function(x){ return x.length>0; });
+}
+function substitute(template, payloads, attackType, idx){
+  var parts = String(template).split(/(§[^§]*§)/g); var pos=-1;
+  return parts.map(function(part){ if(/^§[^§]*§$/.test(part)){ pos++; if(attackType==='battering') return payloads[0]; if(attackType==='pitchfork') return payloads[Math.min(pos, payloads.length-1)]; return payloads[idx]!=null? payloads[idx]:part; } return part; }).join('');
+}
+async function runIntruder(){
+  if(state.intruderRunning) return;
+  var payloads=getPayloads(); if(!payloads.length){ toast('Add at least one payload'); return; }
+  var type=$('intAttackType').value; var delay=Math.max(0,+$('intDelay').value||0); var grep=($('intGrep').value||'').toLowerCase();
+  var runs = type==='sniper'? Math.min(60, payloads.length * Math.max(1, positionsIn($('intUrl').value)+positionsIn($('intBody').value))) : Math.min(60, payloads.length);
+  if(type!=='sniper') runs=Math.min(60,payloads.length); else runs=Math.min(60,payloads.length);
+  state.intruderResults=[]; state.intruderRunning=true; $('intStartBtn').disabled=true; $('intStopBtn').disabled=false;
+  renderIntruderResults();
+  var baseLen=null;
+  for(var i=0;i<runs;i++){
+    if(!state.intruderRunning) break;
+    var payload = type==='sniper'? payloads[i] : payloads[i];
+    var url = substitute($('intUrl').value, type==='sniper'?[payload]:payloads, type, i);
+    var body = substitute($('intBody').value, type==='sniper'?[payload]:payloads, type, i);
+    var hdrs={}; $('intHeaders').value.split('\n').forEach(function(l){ var c=l.indexOf(':'); if(c>0) hdrs[l.slice(0,c).trim()]=substitute(l.slice(c+1).trim(), type==='sniper'?[payload]:payloads, type, i); });
+    var tr = await transportRequest({ method:$('intMethod').value, url:url, headers:hdrs, body:body });
+    var status=tr.status, len=new Blob([tr.body||'']).size, respBody=tr.body||'', err=tr.error||null, ms=tr.ms;
+    if(baseLen===null && !err) baseLen=len;
+    var flag=''; if(err) flag=(tr.via==='relay'?'Relay':'Blocked'); else if(grep && respBody.toLowerCase().indexOf(grep)>-1) flag='Grep match'; else if(baseLen!==null && Math.abs(len-baseLen)>Math.max(60, baseLen*0.35)) flag='Length anomaly';
+    state.intruderResults.push({ n:i+1, payload:payload, status:status, len:len, ms:ms, flag:flag, error:err, respBody:respBody.slice(0,6000), url:url, via:tr.via });
+    state.history.unshift({ id:uid(), method:$('intMethod').value, url:url, host:hostOf(url), path:pathOf(url), reqHeaders:hdrs, reqBody:body, status:status, statusText:err?(tr.via==='relay'?'Relay':'Blocked'):'', respHeaders:tr.headers||{}, respBody:respBody, ms:ms, size:len, source:'intruder', time:nowTime(), error:err, via:tr.via });
+    $('intProgress').style.width = Math.round(((i+1)/runs)*100)+'%';
+    $('intStatus').textContent='Running '+(i+1)+' / '+runs;
+    renderIntruderResults();
+    if(delay) await new Promise(function(r){ setTimeout(r, delay); });
+  }
+  state.intruderRunning=false; $('intStartBtn').disabled=false; $('intStopBtn').disabled=true;
+  $('intStatus').textContent='Done: '+state.intruderResults.length+' requests'; refreshAll(); toast('Intruder run finished');
+}
+function renderIntruderResults(){
+  $('intResultCount').textContent=state.intruderResults.length;
+  $('intTbody').innerHTML = state.intruderResults.length? state.intruderResults.map(function(r){
+    return '<tr data-int-row="'+r.n+'" style="cursor:pointer;'+(r.flag?'background:rgba(255,106,26,.08)':'')+'"><td>'+r.n+'</td><td class="mono">'+esc(String(r.payload).slice(0,42))+'</td><td>'+(r.error?'<span class="pill r">Blocked</span>':'<span class="pill '+(r.status<300?'g':r.status<400?'y':'r')+'">'+r.status+'</span>')+'</td><td>'+r.len+'</td><td>'+r.ms+' ms</td><td>'+(r.flag?'<span class="pill o">'+esc(r.flag)+'</span>':'')+'</td></tr>';
+  }).join('') : '<tr><td colspan="6" class="muted">No attack run yet.</td></tr>';
+  $$('#intTbody [data-int-row]').forEach(function(row){ row.addEventListener('click', function(){ var r=state.intruderResults.filter(function(x){return x.n===+row.dataset.intRow;})[0]; if(r) $('intDetail').innerHTML='<h3>Response for payload: <span class="mono">'+esc(r.payload)+'</span></h3><p class="small muted mono" style="margin:5px 0;word-break:break-all">'+esc(r.url)+'</p><div class="codebox">'+esc(r.error? ('Blocked: '+r.error) : (r.respBody||'(empty)'))+'</div>'; }); });
+}
+$('intStartBtn').addEventListener('click', runIntruder);
+$('intStopBtn').addEventListener('click', function(){ state.intruderRunning=false; });
+$('intExportBtn').addEventListener('click', function(){ if(!state.intruderResults.length){ toast('No results to export'); return; } var csv='n,payload,status,length,ms,flag\n'+state.intruderResults.map(function(r){ return [r.n, '"'+String(r.payload).replace(/"/g,'""')+'"', r.status||'blocked', r.len, r.ms, r.flag].join(','); }).join('\n'); download('securitysuite-intruder.csv', csv, 'text/csv'); });
+
+/* ---------- Scanner (passive) ---------- */
+function scanEntry(e){
+  var out=[]; if(!e) return out;
+  function add(sev,title,detail){ out.push({ id:uid(), sev:sev, title:title, detail:detail, endpoint:e.method+' '+e.host+e.path, historyId:e.id }); }
+  var h={}; Object.keys(e.respHeaders||{}).forEach(function(k){ h[k.toLowerCase()]=e.respHeaders[k]; });
+  if(e.status!=null && !e.error){
+    if(!h['content-security-policy']) add('Medium','Missing Content-Security-Policy','No CSP header on '+e.host+'. Pages without CSP have no browser-level XSS containment.');
+    if(!h['strict-transport-security'] && e.url.indexOf('https://')===0) add('Medium','Missing Strict-Transport-Security','HTTPS response without HSTS allows SSL-stripping on first visit.');
+    if(!h['x-frame-options'] && !h['content-security-policy']) add('Low','Missing X-Frame-Options','Response can be framed by other origins: clickjacking risk.');
+    if(!h['x-content-type-options']) add('Low','Missing X-Content-Type-Options','Browsers may MIME-sniff responses away from the declared type.');
+    if(!h['referrer-policy']) add('Info','Missing Referrer-Policy','Full URLs may leak to third parties via the Referer header.');
+    var acao=h['access-control-allow-origin'], acac=h['access-control-allow-credentials'];
+    if(acao==='*' && acac==='true') add('High','CORS: wildcard origin with credentials','Access-Control-Allow-Origin: * together with Allow-Credentials: true is a dangerous combination browsers reject per-request, and a sign of a broken CORS policy. Test with a reflected origin.');
+    else if(acao==='*') add('Low','CORS: wildcard origin','Any website can read this response cross-origin. Fine for public data, a finding for anything authenticated.');
+    var sc=h['set-cookie']||'';
+    if(sc){ if(!/httponly/i.test(sc)) add('Medium','Cookie without HttpOnly','Set-Cookie lacks HttpOnly, so script can read the cookie if XSS occurs. Cookie: '+sc.slice(0,90)); if(!/secure/i.test(sc) && e.url.indexOf('https://')===0) add('Medium','Cookie without Secure flag','Cookie can travel over plain HTTP. Cookie: '+sc.slice(0,90)); if(!/samesite/i.test(sc)) add('Low','Cookie without SameSite','No SameSite attribute: CSRF exposure depends on the endpoint. Cookie: '+sc.slice(0,90)); }
+    if(h['server']) add('Info','Server header discloses technology','Server: '+h['server']+'. Version disclosure helps attackers pick exploits.');
+    if(h['x-powered-by']) add('Info','X-Powered-By discloses technology','X-Powered-By: '+h['x-powered-by']);
+  }
+  var body=e.respBody||'';
+  var jwtM = body.match(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/);
+  if(jwtM){ try{ var payload=JSON.parse(b64urlDecode(jwtM[0].split('.')[1])); var hdr=JSON.parse(b64urlDecode(jwtM[0].split('.')[0]));
+    if(hdr.alg==='none') add('Critical','JWT uses alg=none','Token in response is unsigned. Try accepting it with a modified payload.');
+    if(!payload.exp) add('Medium','JWT has no expiry (exp)','Token never expires on its own. Check revocation handling.');
+    else if(payload.exp*1000 - Date.now() > 1000*60*60*24*30) add('Low','JWT expiry over 30 days','Long-lived token: '+new Date(payload.exp*1000).toLocaleDateString('en-IN')+'.');
+    add('Info','JWT present in response','Claims include: '+Object.keys(payload).join(', ')+'. Decode it fully in the Decoder tab.'); }catch(err){} }
+  if(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(body)) add('Low','Email address(es) in response','Pattern match for email addresses. Confirm this exposure is intended.');
+  if(/(api[_-]?key|secret|access[_-]?token)["'\s:=]+[A-Za-z0-9_\-]{16,}/i.test(body)) add('High','Possible secret / API key in response','A key-like value matched in the body. Verify whether it is live and scoped.');
+  if(/(at\s+\w+\s+\(|stack trace|Traceback \(most recent call last\)|java\.lang\.|System\.Exception)/.test(body)) add('Medium','Stack trace / verbose error in response','Error detail leaks internals. Use it to fingerprint the stack, then report it.');
+  if(e.status>=500) add('Medium','Server error response ('+e.status+')','5xx on '+e.path+'. Replay in Repeater with malformed inputs to see if errors are consistent.');
+  return out;
+}
+function runScan(historyId){
+  var e=state.history.filter(function(x){return x.id===historyId;})[0]; if(!e){ toast('Nothing to scan'); return; }
+  state.findings = state.findings.filter(function(f){ return f.historyId!==historyId; }).concat(scanEntry(e));
+  state.selectedScanId=historyId; renderScanner(); refreshDashboard();
+}
+function renderScanner(){
+  $('scanCount').textContent=state.findings.length;
+  $('scanPickList').innerHTML = state.history.length? state.history.slice(0,14).map(function(e){ return '<div class="logline"><span class="m '+e.method+'">'+e.method+'</span><div class="grow" style="min-width:0"><div class="mono small" style="word-break:break-all">'+esc(e.host+e.path)+'</div><div class="tiny muted">'+e.time+'</div></div>'+statusPill(e)+'<button class="btn sm" data-scan-one="'+e.id+'" type="button">Scan</button></div>'; }).join('') : '<div class="empty">No responses captured yet.</div>';
+  var sevRank={Critical:0,High:1,Medium:2,Low:3,Info:4};
+  var sorted=state.findings.slice().sort(function(a,b){ return sevRank[a.sev]-sevRank[b.sev]; });
+  $('scanResults').innerHTML = sorted.length? sorted.map(function(f){ var cls=f.sev==='Critical'||f.sev==='High'?'r':f.sev==='Medium'?'y':f.sev==='Low'?'g':'b';
+    return '<div class="finding"><div class="row" style="gap:8px"><span class="pill '+cls+'">'+f.sev+'</span><b>'+esc(f.title)+'</b></div><p class="small muted" style="margin-top:5px">'+esc(f.detail)+'</p><p class="tiny mono muted" style="margin-top:4px">'+esc(f.endpoint)+'</p></div>'; }).join('') : '<div class="empty">No findings yet. Send a request in Repeater, then scan it, or use "Scan all history".</div>';
+}
+$('scanAllBtn').addEventListener('click', function(){ state.findings=[]; state.history.forEach(function(e){ state.findings=state.findings.concat(scanEntry(e)); }); renderScanner(); refreshDashboard(); toast('Scanned '+state.history.length+' response(s): '+state.findings.length+' findings'); });
+$('dashScanBtn').addEventListener('click', function(){ state.findings=[]; state.history.forEach(function(e){ state.findings=state.findings.concat(scanEntry(e)); }); refreshAll(); showView('scanner'); toast(state.history.length? 'Passive scan complete: '+state.findings.length+' findings' : 'No traffic to scan yet'); });
+
+/* ---------- Decoder ---------- */
+function b64urlDecode(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return decodeURIComponent(escape(atob(s))); }
+function decOp(op){
+  var inp=$('decInput').value; var out='', extra='';
+  try{
+    if(op==='b64enc') out=btoa(unescape(encodeURIComponent(inp)));
+    else if(op==='b64dec') out=decodeURIComponent(escape(atob(inp.replace(/\s/g,''))));
+    else if(op==='urlenc') out=encodeURIComponent(inp);
+    else if(op==='urldec') out=decodeURIComponent(inp);
+    else if(op==='hexenc') out=Array.prototype.map.call(inp, function(c){ return c.charCodeAt(0).toString(16).padStart(2,'0'); }).join('');
+    else if(op==='hexdec'){ var clean=inp.replace(/[^0-9a-fA-F]/g,''); out=''; for(var i=0;i+1<clean.length;i+=2) out+=String.fromCharCode(parseInt(clean.substr(i,2),16)); }
+    else if(op==='html'){ var ta=document.createElement('textarea'); ta.innerHTML=inp; out=ta.value; }
+    else if(op==='jwt'){ var parts=inp.trim().split('.'); if(parts.length!==3) throw new Error('A JWT has 3 dot-separated parts'); var hdr=JSON.parse(b64urlDecode(parts[0])), pl=JSON.parse(b64urlDecode(parts[1]));
+      out='HEADER\n'+JSON.stringify(hdr,null,2)+'\n\nPAYLOAD\n'+JSON.stringify(pl,null,2)+'\n\nSIGNATURE\n'+parts[2]+' (not verified, signature check needs the secret / public key)';
+      var notes=[]; if(hdr.alg==='none') notes.push('alg is "none": unsigned token, test whether the server accepts forged payloads.');
+      if(pl.exp) notes.push('Expires: '+new Date(pl.exp*1000).toLocaleString('en-IN')+(pl.exp*1000<Date.now()?' (EXPIRED)':''));
+      if(pl.iat) notes.push('Issued at: '+new Date(pl.iat*1000).toLocaleString('en-IN'));
+      if(pl.isAdmin===false||pl.role) notes.push('Privilege claims present ('+Object.keys(pl).filter(function(k){return /admin|role|scope|perm/i.test(k);}).join(', ')+'): classic tamper target, change the claim, re-sign with alg=none or a weak secret and replay.');
+      extra = notes.length? '<div class="finding"><b>Copilot notes</b><ul class="small muted" style="margin:5px 0 0;padding-left:18px">'+notes.map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul></div>' : ''; }
+    else if(op==='hashid'){ var v=inp.trim(); var guesses=[];
+      if(/^[a-f0-9]{32}$/i.test(v)) guesses.push('MD5 or NTLM (32 hex chars)');
+      if(/^[a-f0-9]{40}$/i.test(v)) guesses.push('SHA-1 (40 hex chars)');
+      if(/^[a-f0-9]{56}$/i.test(v)) guesses.push('SHA-224 (56 hex chars)');
+      if(/^[a-f0-9]{64}$/i.test(v)) guesses.push('SHA-256 (64 hex chars)');
+      if(/^[a-f0-9]{128}$/i.test(v)) guesses.push('SHA-512 (128 hex chars)');
+      if(/^\$2[aby]\$/.test(v)) guesses.push('bcrypt');
+      if(/^\$argon2/.test(v)) guesses.push('Argon2');
+      if(/^eyJ/.test(v)&&v.split('.').length===3) guesses.push('Looks like a JWT, use "Decode as JWT"');
+      out = guesses.length? guesses.join('\n') : 'No confident match. Length: '+v.length+' chars. Paste it into a dedicated identifier (hashid / haiti) for a full workup.'; }
+  }catch(err){ out='Error: '+err.message; }
+  $('decOutput').textContent=out; $('decExtra').innerHTML=extra;
+}
+$$('[data-dec]').forEach(function(b){ b.addEventListener('click', function(){ decOp(b.dataset.dec); }); });
+
+/* ---------- Comparer ---------- */
+$('cmpBtn').addEventListener('click', function(){
+  var a=$('cmpA').value.split('\n'), b=$('cmpB').value.split('\n'); var max=Math.max(a.length,b.length); var diff=0; var html='';
+  for(var i=0;i<max;i++){ var la=a[i], lb=b[i];
+    if(la===lb) html+='<div class="diff-same">  '+esc(la==null?'':la)+'</div>';
+    else { diff++; if(la!=null) html+='<div class="diff-del">- '+esc(la)+'</div>'; if(lb!=null) html+='<div class="diff-add">+ '+esc(lb)+'</div>'; } }
+  $('cmpOutput').innerHTML=html; $('cmpSummary').textContent = diff? diff+' differing line(s) out of '+max : 'Identical, line for line.';
+});
+
+/* ---------- Sequencer ---------- */
+$('seqBtn').addEventListener('click', async function(){
+  var url=$('seqUrl').value, reSrc=$('seqRegex').value, n=Math.min(25, Math.max(2, +$('seqCount').value||8));
+  var re; try{ re=new RegExp(reSrc); }catch(e){ toast('Bad regex: '+e.message); return; }
+  $('seqStatus').textContent='Collecting via '+state.transport+'…'; var tokens=[];
+  for(var i=0;i<n;i++){ var tr=await transportRequest({ method:'GET', url:url, headers:{} }); if(!tr.error){ var all=(tr.body||'')+' '; Object.keys(tr.headers||{}).forEach(function(k){ all+=k+': '+tr.headers[k]+' '; }); var m=all.match(re); if(m) tokens.push(m[1]||m[0]); } $('seqStatus').textContent='Collected '+tokens.length+' so far…'; }
+  $('seqStatus').textContent='';
+  if(!tokens.length){ $('seqOutput').innerHTML='<div class="empty">No tokens matched. In Direct mode the endpoint may be CORS-blocked; in Relay mode check the relay status (top bar) — or the regex does not match its response / headers. Adjust the regex / transport and retry.</div>'; return; }
+  var uniq={}; tokens.forEach(function(t){ uniq[t]=true; });
+  var lens=tokens.map(function(t){return t.length;}); var charset={}; tokens.join('').split('').forEach(function(c){ charset[c]=true; });
+  var freq={}, total=tokens.join('').length; tokens.join('').split('').forEach(function(c){ freq[c]=(freq[c]||0)+1; });
+  var entropy=0; Object.keys(freq).forEach(function(c){ var p=freq[c]/total; entropy-=p*Math.log2(p); });
+  var verdict = Object.keys(uniq).length<tokens.length? 'WEAK: duplicate token values returned. Sessions may be predictable or reused.' : (entropy<3? 'SUSPICIOUS: low per-character entropy ('+entropy.toFixed(2)+' bits). Test predictability across accounts.' : 'Looks reasonably random on this small sample. Collect more samples and check for patterns (counters, timestamps) before concluding.');
+  $('seqOutput').innerHTML='<dl class="kv"><dt>Samples</dt><dd>'+tokens.length+'</dd><dt>Unique</dt><dd>'+Object.keys(uniq).length+'</dd><dt>Length</dt><dd>'+Math.min.apply(null,lens)+' to '+Math.max.apply(null,lens)+' chars</dd><dt>Charset size</dt><dd>'+Object.keys(charset).length+'</dd><dt>Shannon entropy</dt><dd>'+entropy.toFixed(2)+' bits / char</dd></dl><div class="finding" style="margin-top:10px"><b>Verdict</b><p class="small muted" style="margin-top:4px">'+esc(verdict)+'</p></div><h3 style="margin-top:12px">Samples</h3><div class="codebox" style="max-height:180px">'+esc(tokens.join('\n'))+'</div>';
+});
+
+/* ---------- Copilot (local heuristics) ---------- */
+function copilotAnalyse(entry, short){
+  if(!entry) return null;
+  var tips=[]; var body=entry.respBody||'';
+  try{ var j=JSON.parse(body); var walk=function(o,path){ if(!o||typeof o!=='object') return; Object.keys(o).forEach(function(k){ var v=o[k]; var p=path?path+'.'+k:k;
+    if(/isadmin|is_admin/i.test(k)&&v===false) tips.push('Flag: <span class="mono">"'+esc(p)+'": false</span> in the response. Test privilege escalation: replay the matching update request with it set to true.');
+    if(/role/i.test(k)&&typeof v==='string') tips.push('Flag: role claim <span class="mono">"'+esc(p)+'": "'+esc(v)+'"</span>. Try swapping in "admin" in Repeater and watch for a changed response.');
+    if(/(^|\.)id$/i.test(k)&&typeof v==='number') tips.push('Flag: numeric id <span class="mono">'+esc(p)+' = '+v+'</span>. Classic IDOR target: change it to a neighbouring value in Intruder with the IDOR number set.');
+    if(/token|jwt|session/i.test(k)&&typeof v==='string') tips.push('Flag: token-like field <span class="mono">'+esc(p)+'</span>. Send it to the Decoder: check alg, expiry and claims.');
+    if(/price|amount|total|discount/i.test(k)&&typeof v==='number') tips.push('Flag: money field <span class="mono">'+esc(p)+' = '+v+'</span>. Test negative / zero / fractional values if the client sends it back on checkout.');
+    if(typeof v==='object') walk(v,p); }); }; walk(j,''); }catch(e){}
+  if(/sql|syntax|mysql|postgres|ora-\d+/i.test(body)) tips.push('Response smells like a database error. Fuzz the input parameters with the SQLi payload set in Intruder.');
+  if(entry.status===401||entry.status===403) tips.push('Status '+entry.status+': test auth bypass with method swapping, trailing slash / case changes, and the Auth bypass payload set on credential fields.');
+  if(entry.status>=500) tips.push('Status '+entry.status+': the endpoint errors out. Replay it in Repeater and vary one input at a time to find the trigger.');
+  if(!tips.length) tips.push('Nothing obviously testable in the last response ('+entry.method+' '+entry.path+'). Run the passive Scanner on it, then fuzz its parameters in Intruder.');
+  return (short? tips[0] : tips);
+}
+function copilotPost(kind, userText){
+  var log=$('copLog'); var entry=state.lastResponse;
+  function bot(html){ var d=document.createElement('div'); d.className='msg bot'; d.innerHTML=html; log.appendChild(d); log.scrollTop=log.scrollHeight; }
+  function user(t){ var d=document.createElement('div'); d.className='msg user'; d.textContent=t; log.appendChild(d); log.scrollTop=log.scrollHeight; }
+  if(kind==='analyse'){ var tips=copilotAnalyse(entry,false); bot(entry? '<b>Analysis of '+esc(entry.method+' '+entry.path)+' ('+(entry.status||'blocked')+')</b><ul>'+tips.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul>' : 'No response captured yet. Send something in Repeater first, then ask again.'); }
+  else if(kind==='payloads'){ bot('Payload sets matched to the last request:<ul><li><b>SQLi:</b> if any parameter reaches a database: <span class="mono">'+esc(PAYLOAD_SETS.sqli.slice(0,3).join(' · '))+'</span></li><li><b>XSS:</b> if input is reflected: <span class="mono">'+esc(PAYLOAD_SETS.xss.slice(0,3).join(' · '))+'</span></li><li><b>Path traversal:</b> for file / download params: <span class="mono">'+esc(PAYLOAD_SETS.traversal.slice(0,3).join(' · '))+'</span></li></ul>All four sets plus IDOR numbers are one click away in Intruder, under "Built-in sets".'); }
+  else if(kind==='idor'){ bot('<b>IDOR test plan</b><ul><li>Capture the request that fetches or updates an object (look for numeric ids in URL, body or response).</li><li>Send it to Intruder, mark the id with §, load the "IDOR numbers" set.</li><li>Compare status and length in the results table: a 200 with a different length usually means someone else\'s object.</li><li>Confirm manually in Repeater with two ids before reporting, and check whether the response leaks fields (Comparer helps).</li></ul>'); }
+  else if(kind==='checklist'){ bot('<b>Endpoint test checklist</b><ul><li>Auth: does it work with no token? With another user\'s token?</li><li>Input: SQLi, XSS, traversal payloads on every parameter (Intruder).</li><li>Method: try PUT / DELETE / PATCH on a GET endpoint.</li><li>Headers: run the passive Scanner for CORS, cookies, missing headers.</li><li>Tokens: decode any JWT in the Decoder, check alg and expiry.</li><li>Errors: send malformed JSON and oversized values, watch for stack traces.</li></ul>'); }
+  else if(kind==='user'){ user(userText); var q=userText.toLowerCase();
+    if(/payload|sqli|sql|xss|inject/.test(q)) copilotPost('payloads');
+    else if(/idor|insecure direct/.test(q)) copilotPost('idor');
+    else if(/explain|response|analyse|analyze/.test(q)) copilotPost('analyse');
+    else if(/checklist|test next|what should/.test(q)) copilotPost('checklist');
+    else bot('In v1.2 I work from your captured traffic with local rules (transport: '+state.transport+'). Try: "analyse the last response", "suggest payloads", "IDOR test plan", or "endpoint checklist". For open-ended AI, hand this page to an external agent via the Agent API tab: it can run real scans through <span class="mono">window.SecuritySuite</span>.'); }
+  renderCopFlags();
+}
+function renderCopFlags(){ var tips=copilotAnalyse(state.lastResponse,false); $('copFlags').innerHTML = state.lastResponse? tips.map(function(t){ return '<div style="padding:7px 0;border-bottom:1px solid var(--line)">'+t+'</div>'; }).join('') : 'Nothing flagged yet. Send a request with a JSON response and testable fields (ids, roles, tokens, prices) will appear here.'; }
+$$('[data-cop]').forEach(function(b){ b.addEventListener('click', function(){ copilotPost(b.dataset.cop); }); });
+$('copSendBtn').addEventListener('click', function(){ var v=$('copInput').value.trim(); if(v){ copilotPost('user', v); $('copInput').value=''; } });
+$('copInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ $('copSendBtn').click(); } });
+
+/* ---------- Collections & session ---------- */
+function renderCollections(){
+  $('colList').innerHTML = state.collections.length? state.collections.map(function(c){ return '<div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:9px"><div class="row" style="justify-content:space-between"><b>'+esc(c.name)+'</b><span class="pill grey">'+c.items.length+' item(s)</span></div>'+(c.items.map(function(it){ return '<div class="logline"><span class="m '+it.method+'">'+it.method+'</span><span class="mono small grow" style="word-break:break-all">'+esc(it.url)+'</span><button class="btn sm" data-col-load="'+c.id+'|'+it.id+'" type="button">Repeater</button></div>'; }).join('')||'<p class="small muted" style="margin-top:6px">Empty. Add the current Repeater request below.</p>')+'<button class="btn sm" data-col-add="'+c.id+'" type="button" style="margin-top:7px">+ Add current Repeater request</button></div>'; }).join('') : '<div class="empty">No collections yet. Create one, then add requests from Repeater.</div>';
+  $('sessionSummary').innerHTML='<dt>Requests</dt><dd>'+state.history.length+'</dd><dt>Findings</dt><dd>'+state.findings.length+'</dd><dt>Intruder results</dt><dd>'+state.intruderResults.length+'</dd><dt>Collections</dt><dd>'+state.collections.length+'</dd><dt>Scope</dt><dd>'+esc($('scopeInput').value)+'</dd>';
+}
+document.addEventListener('click', function(ev){
+  var add=ev.target.closest('[data-col-add]'); if(add){ var c=state.collections.filter(function(x){return x.id===add.dataset.colAdd;})[0]; var p=parseRawRequest($('repRaw').value, $('repUrl').value); if(c){ c.items.push({ id:uid(), method:p.method, url:p.url, headers:p.headers, body:p.body }); renderCollections(); toast('Added to '+c.name); } return; }
+  var load=ev.target.closest('[data-col-load]'); if(load){ var parts=load.dataset.colLoad.split('|'); var col=state.collections.filter(function(x){return x.id===parts[0];})[0]; var it=col&&col.items.filter(function(x){return x.id===parts[1];})[0]; if(it){ setRepeater(it.method,it.url,it.headers,it.body); showView('repeater'); } }
+});
+$('colCreateBtn').addEventListener('click', function(){ var n=$('colName').value.trim()||('Collection '+(state.collections.length+1)); state.collections.push({ id:uid(), name:n, items:[] }); $('colName').value=''; renderCollections(); });
+function sessionJSON(){ return JSON.stringify({ app:'SecuritySuite', version:'1.2', transport:state.transport, relayEndpoint:state.relayEndpoint, exportedAt:new Date().toISOString(), scope:$('scopeInput').value, history:state.history.map(entryToJSON), findings:state.findings, intruderResults:state.intruderResults, collections:state.collections }, null, 2); }
+$('colExportBtn').addEventListener('click', function(){ download('securitysuite-session.json', sessionJSON(), 'application/json'); });
+$('topExportBtn').addEventListener('click', function(){ download('securitysuite-session.json', sessionJSON(), 'application/json'); });
+$('colImportFile').addEventListener('change', function(){ var f=this.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ try{ var j=JSON.parse(String(rd.result)); state.collections=j.collections||state.collections; state.findings=j.findings||[]; if(j.scope) $('scopeInput').value=j.scope; refreshAll(); toast('Session imported'); }catch(e){ toast('Import failed: '+e.message); } }; rd.readAsText(f); });
+
+/* ---------- Agent API ---------- */
+var AGENT_PROMPT = [
+'You are connected to SecuritySuite v1.2, a browser-based web security toolkit open in a browser tab.',
+'Drive it ONLY through its JavaScript API: window.SecuritySuite. Every method returns a Promise of plain JSON.',
+'Transport is Relay by default: SecuritySuite.setTransport("relay"|"direct"|"bridge"), SecuritySuite.getTransport() -> current mode, getState().transport also reports it. Relay fetches public targets server-side via /api/fetch (no CORS wall); Direct is browser fetch (CORS applies); Bridge is for LAN targets via the Proxy Bridge. Relay blocks private/LAN/localhost targets.',
+'',
+'API:',
+'  await SecuritySuite.send({method, url, headers, body})  -> full entry (status, headers, body, ms, size, error, via, transport)',
+'  await SecuritySuite.repeater(req)                       -> alias of send()',
+'  await SecuritySuite.intruder({method, url, headers, body, payloads, attackType}) -> array of {payload, status, length, ms, flag, via}',
+'       Mark payload positions in url/body with §...§ . attackType: "sniper" | "battering" | "pitchfork"',
+'  SecuritySuite.decode(input, op)  op: b64enc|b64dec|urlenc|urldec|hexenc|hexdec|jwt|hashid  -> string',
+'  SecuritySuite.scan(entryOrId)    -> passive findings [{severity, title, detail, endpoint}]',
+'  SecuritySuite.getHistory() / getFindings() / getState()  -> current session data as JSON (getState includes transport + relayHealth)',
+'  SecuritySuite.setTransport(mode) / getTransport()',
+'  await SecuritySuite.browse(url)                          -> fetch-browser via current transport, logged to history, returns entry + links + forms',
+'  await SecuritySuite.crawl(url, {depth, maxPages, sameHost}) -> crawls in-scope links, returns [{url, status, depth, via}]',
+'  SecuritySuite.payloadSets        -> {sqli, xss, traversal, idor, auth}',
+'',
+'Rules: only test targets the user owns or is authorized to test. If via is "relay" and error is set, the relay was unavailable or blocked the target — report that, never invent a response and never silently retry as Direct. In Direct mode, error + status null means CORS/network block. Intruder runs are capped at 60 requests, including through Relay.',
+'Start by calling SecuritySuite.getState() to see transport, scope and history, then plan your tests.'
+].join('\n');
+var API_REF = [
+'window.SecuritySuite = {',
+'  version: "1.2",',
+'  transport: "relay" (default), relayEndpoint: "/api/fetch", relayHealth: "unknown|ok|unreachable",',
+'  setTransport(mode): "relay"|"direct"|"bridge",',
+'  getTransport(): string,',
+'  browse(url): Promise<{entry, links, forms}>,',
+'  crawl(url, opts): Promise<CrawlResult[]>',
+'  send(req): Promise<Entry>,        // via current transport, logged to Proxy history',
+'  repeater(req): Promise<Entry>,    // alias of send',
+'  intruder(cfg): Promise<Result[]>, // §-marked fuzzing, max 60, via current transport',
+'  decode(input, op): string,',
+'  scan(idOrEntry): Finding[],',
+'  scanAll(): Finding[],',
+'  getHistory(): Entry[],',
+'  getFindings(): Finding[],',
+'  getState(): {version, transport, relayHealth, relayEndpoint, scope, requests, findings, queue},',
+'  setScope(host): void,',
+'  payloadSets: {sqli, xss, traversal, idor, auth}',
+'}',
+'',
+'Entry = { id, method, url, status, statusText, ms, size, via, transport,',
+'  requestHeaders, requestBody, responseHeaders,',
+'  responseBody, error, source, time }',
+'via="relay" + error  => relay unavailable / relay blocked private target.',
+'via="direct" + error + status null => browser CORS / network block.'
+].join('\n');
+$('agentPrompt').textContent = AGENT_PROMPT;
+$('apiRef').textContent = API_REF;
+$('apiVer').textContent = 'SecuritySuite API 1.2';
+$('agentCopyBtn').addEventListener('click', function(){ copyText(AGENT_PROMPT, 'Agent prompt copied'); });
+$('apiRunBtn').addEventListener('click', async function(){
+  $('apiRunStatus').textContent='Running…';
+  var ex=$('apiExample').value, url=$('apiExampleUrl').value;
+  try{
+    var res;
+    if(ex==='send') res = await window.SecuritySuite.send({ method:'GET', url:url });
+    else if(ex==='state') res = window.SecuritySuite.getState();
+    else if(ex==='history') res = window.SecuritySuite.getHistory();
+    else if(ex==='scanall') res = window.SecuritySuite.scanAll();
+    else if(ex==='decode') res = window.SecuritySuite.decode('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJpc0FkbWluIjpmYWxzZX0.4Adcj3UFYzPUVaVF43FmMabRwRQH8R9VlfZybLOX9A8','jwt');
+    else if(ex==='intruder') res = await window.SecuritySuite.intruder({ method:'GET', url:url.replace(/from=agent/,'id=§1§'), payloads:['1','2','3'], attackType:'sniper' });
+    else if(ex==='browse') res = await window.SecuritySuite.browse(url);
+    else if(ex==='crawl') res = await window.SecuritySuite.crawl(url, { depth:1, maxPages:10 });
+    else if(ex==='transport'){ var sel=$('apiTransportSelect'); if(sel) window.SecuritySuite.setTransport(sel.value); res = { transport: window.SecuritySuite.getTransport(), state: window.SecuritySuite.getState() }; }
+    $('apiTestOut').textContent = (typeof res==='string'? res : JSON.stringify(res, null, 2)).slice(0, 12000);
+    $('apiRunStatus').textContent='Done';
+  } catch(e){ $('apiTestOut').textContent='Error: '+e.message; $('apiRunStatus').textContent=''; }
+});
+
+/* Public API object (also used by the tester above) */
+window.SecuritySuite = {
+  version: '1.2',
+  get transport(){ return state.transport; },
+  get relayEndpoint(){ return state.relayEndpoint; },
+  get relayHealth(){ return state.relayHealth; },
+  setTransport: function(mode){ return setTransport(mode, true); },
+  getTransport: function(){ return getTransport(); },
+  browse: async function(url){ var e=await browserNavigate(url); var ex=e&&!e.error? extractPage(e.respBody||'', e.url) : {links:[],forms:[]}; return { entry: e? entryToJSON(e):null, links: ex.links, forms: ex.forms }; },
+  crawl: async function(url, opts){ opts=opts||{}; return runCrawl(url, opts.depth||2, opts.maxPages||25, opts.sameHost!==false); },
+  payloadSets: PAYLOAD_SETS,
+  send: async function(req){ var e = await doFetch({ method:req.method||'GET', url:req.url, headers:req.headers||{}, body:req.body||'', source:'agent-api' }); return entryToJSON(e); },
+  repeater: async function(req){ return window.SecuritySuite.send(req); },
+  intruder: async function(cfg){
+    var payloads=(cfg.payloads||[]).slice(0,60); var type=cfg.attackType||'sniper'; var out=[];
+    for(var i=0;i<payloads.length;i++){ var url=substitute(cfg.url||'', type==='sniper'?[payloads[i]]:payloads, type, i); var body=substitute(cfg.body||'', type==='sniper'?[payloads[i]]:payloads, type, i);
+      var tr=await transportRequest({ method:(cfg.method||'GET').toUpperCase(), url:url, headers:cfg.headers||{}, body:body });
+      out.push({ payload:payloads[i], status:tr.status, length:new Blob([tr.body||'']).size, ms:tr.ms, flag:tr.error?(tr.via==='relay'?'Relay':'Blocked'):'', error:tr.error||null, via:tr.via, responsePreview:(tr.body||'').slice(0,500) }); }
+    refreshAll(); return out;
+  },
+  decode: function(input, op){ var keep=$('decInput').value; $('decInput').value=input; decOp(op||'jwt'); var out=$('decOutput').textContent; $('decInput').value=keep; return out; },
+  scan: function(idOrEntry){ var e = typeof idOrEntry==='string'? state.history.filter(function(x){return x.id===idOrEntry;})[0] : (idOrEntry&&idOrEntry.url? (function(){ var m=state.history.filter(function(x){return x.url===idOrEntry.url;})[0]; return m||null; })() : state.lastResponse); if(!e) return []; var f=scanEntry(e); return f.map(function(x){ return { severity:x.sev, title:x.title, detail:x.detail, endpoint:x.endpoint }; }); },
+  scanAll: function(){ var all=[]; state.history.forEach(function(e){ all=all.concat(scanEntry(e)); }); return all.map(function(x){ return { severity:x.sev, title:x.title, detail:x.detail, endpoint:x.endpoint }; }); },
+  getHistory: function(){ return state.history.map(entryToJSON); },
+  getFindings: function(){ return state.findings.map(function(f){ return { severity:f.sev, title:f.title, detail:f.detail, endpoint:f.endpoint }; }); },
+  getState: function(){ return { version:'1.2', transport:state.transport, relayHealth:state.relayHealth, relayEndpoint:state.relayEndpoint, scope:$('scopeInput').value, intercept:$('interceptToggle').checked, requests:state.history.length, findings:state.findings.length, queue:state.queue.length, browserUrl:browserState.currentUrl||null, crawled:crawlState.results.length, bridgeImported:bridgeState.count }; },
+  setScope: function(host){ $('scopeInput').value=host; $('scopeEcho').textContent=host; renderDashboard(); }
+};
+
+/* ---------- Browser (fetch-browser) & Crawler ---------- */
+var browserState = { stack: [], idx: -1, currentUrl: '', currentEntryId: null, links: [], forms: [] };
+function normalizeUrl(u){ u=String(u||'').trim(); if(!u) return ''; if(!/^https?:\/\//i.test(u)) u='https://'+u; return u; }
+function extractPage(html, baseUrl){
+  var doc = new DOMParser().parseFromString(html||'', 'text/html');
+  var links=[], seen={};
+  $$('a[href]', doc).forEach(function(a){ var href=a.getAttribute('href')||''; if(!href || href.charAt(0)==='#' || /^javascript:/i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href)) return; try{ var abs=new URL(href, baseUrl).href; if(!seen[abs]){ seen[abs]=true; links.push(abs); } }catch(e){} });
+  var forms=[];
+  $$('form', doc).forEach(function(f){ var fields=[]; $$('input,select,textarea', f).forEach(function(inp){ if(inp.name) fields.push(inp.name); }); var action=baseUrl; try{ action=new URL(f.getAttribute('action')||baseUrl, baseUrl).href; }catch(e){} forms.push({ method:(f.getAttribute('method')||'GET').toUpperCase(), action:action, fields:fields }); });
+  return { title:(doc.title||''), links:links, forms:forms, doc:doc };
+}
+function renderFetchedPage(entry){
+  var vp=$('brViewport');
+  browserState.currentUrl=entry.url; browserState.currentEntryId=entry.id;
+  $('brUrl').value=entry.url;
+  if(entry.error){ if(entry.via==='relay'){ vp.innerHTML='<p style="color:#b3261e"><b>Relay error.</b></p><p style="color:#444">'+esc(entry.error)+'</p><p style="color:#444">Relay status: '+esc(state.relayHealth)+'. This is not a CORS message — in Relay mode the server relay does the fetch. If the relay is unreachable in this preview, that is shown honestly above. For LAN targets use Bridge; for public targets ensure /api/fetch is deployed.</p>'; $('brMeta').textContent='Relay error · via relay · Relay: '+state.relayHealth+' · '+entry.url; } else if(entry.via==='bridge'){ vp.innerHTML='<p style="color:#7a4a00"><b>Bridge mode.</b></p><p style="color:#444">'+esc(entry.error)+'</p>'; $('brMeta').textContent='Bridge mode · '+entry.url; } else { vp.innerHTML='<p style="color:#b3261e"><b>Blocked by CORS / network (Direct mode).</b></p><p style="color:#444">'+esc(entry.error)+'</p><p style="color:#444">The target sent no Access-Control-Allow-Origin header for this origin, so the browser refused the fetch. Nothing was faked. Switch to Relay (default) for public targets, capture via the Proxy Bridge, or import HAR.</p>'; $('brMeta').textContent='Blocked (Direct/CORS): '+entry.url; } browserState.links=[]; browserState.forms=[]; }
+  else if(((entry.respHeaders||{})['content-type']||'').indexOf('html')===-1 && !/<html[\s>]/i.test(entry.respBody||'')){ vp.innerHTML=''; var pre=document.createElement('pre'); pre.style.cssText='white-space:pre-wrap;word-break:break-word;color:#14181d;font-size:12.5px'; pre.textContent=prettyBody(entry.respBody, entry.respHeaders); vp.appendChild(pre); var ex=extractPage('', entry.url); browserState.links=[]; browserState.forms=[]; $('brMeta').textContent=entry.status+' · via '+(entry.via||state.transport)+(entry.via==='relay'?' · Relay: '+state.relayHealth:'')+' · non-HTML response · '+(entry.size||0)+' B · '+entry.ms+' ms (also in Proxy History)'; }
+  else {
+    var ex=extractPage(entry.respBody, entry.url); browserState.links=ex.links; browserState.forms=ex.forms;
+    var doc=ex.doc;
+    $$('script,style,link,iframe,object,embed,base,meta,animate,set,handler', doc).forEach(function(el){ el.remove(); });
+    /* Sanitize: fetched markup is untrusted. Strip every inline event handler and dangerous URL scheme on every element (incl. SVG/MathML children) before it ever touches innerHTML. */
+    $$('*', doc).forEach(function(el){ var attrs=Array.prototype.slice.call(el.attributes||[]); attrs.forEach(function(at){ var n=at.name.toLowerCase(), v=String(at.value||'').replace(/^[\s\u0000-\u0020]+/,'').toLowerCase(); if(n.indexOf('on')===0){ el.removeAttribute(at.name); } else if(/^(href|src|action|formaction|xlink:href|poster)$/.test(n) && /^(javascript|vbscript|data\s*:\s*text\/html)/.test(v)){ el.removeAttribute(at.name); } }); el.removeAttribute('srcdoc'); });
+    $$('a[href]', doc).forEach(function(a){ var href=a.getAttribute('href')||''; try{ var abs=new URL(href, entry.url).href; a.setAttribute('data-ss-link', abs); }catch(e){} a.setAttribute('href','#'); a.removeAttribute('target'); });
+    $$('img[src]', doc).forEach(function(im){ try{ im.setAttribute('src', new URL(im.getAttribute('src'), entry.url).href); }catch(e){} im.setAttribute('loading','lazy'); });
+    $$('form', doc).forEach(function(f){ try{ f.setAttribute('data-ss-action', new URL(f.getAttribute('action')||entry.url, entry.url).href); }catch(e){ f.setAttribute('data-ss-action', entry.url); } f.setAttribute('data-ss-method',(f.getAttribute('method')||'GET').toUpperCase()); f.removeAttribute('action'); });
+    vp.innerHTML = doc.body? doc.body.innerHTML : '';
+    $('brMeta').textContent=(ex.title? ex.title+' · ':'')+entry.status+' · via '+(entry.via||state.transport)+(entry.via==='relay'?' · Relay: '+state.relayHealth:'')+' · '+(entry.size||0)+' B · '+entry.ms+' ms · logged to Proxy History';
+    $('brSource').textContent=(entry.respBody||'').slice(0,30000);
+  }
+  $('brLinkCount').textContent=browserState.links.length;
+  $('brFormCount').textContent=browserState.forms.length;
+  $('brLinks').innerHTML = browserState.links.length? browserState.links.slice(0,60).map(function(l){ return '<div class="logline"><span class="mono url-text grow">'+esc(l)+'</span><button class="btn sm" data-br-open="'+esc(l)+'" type="button">Open</button><button class="btn sm" data-br-rep="'+esc(l)+'" type="button">Repeater</button></div>'; }).join('') : '<span class="muted">No crawlable links found on this page.</span>';
+  $('brForms').innerHTML = browserState.forms.length? browserState.forms.map(function(f){ return '<div class="logline"><span class="m '+f.method+'">'+f.method+'</span><span class="mono url-text grow">'+esc(f.action)+'</span><span class="tiny muted">'+(f.fields.length? 'fields: '+esc(f.fields.join(', ')) : 'no named fields')+'</span></div>'; }).join('') : '<span class="muted">No forms on this page.</span>';
+  $('brBackBtn').disabled = browserState.idx<=0; $('brFwdBtn').disabled = browserState.idx>=browserState.stack.length-1;
+}
+async function browserNavigate(url, push){
+  url=normalizeUrl(url); if(!url){ toast('Enter a URL'); return null; }
+  $('brMeta').textContent='Fetching '+url+' …';
+  var entry=await doFetch({ method:'GET', url:url, headers:{}, source:'browser' });
+  if(push!==false){ browserState.stack=browserState.stack.slice(0, browserState.idx+1); browserState.stack.push(url); browserState.idx=browserState.stack.length-1; }
+  renderFetchedPage(entry); return entry;
+}
+$('brGoBtn').addEventListener('click', function(){ browserNavigate($('brUrl').value); });
+$('brUrl').addEventListener('keydown', function(e){ if(e.key==='Enter') browserNavigate(this.value); });
+$('brReloadBtn').addEventListener('click', function(){ if(browserState.currentUrl) browserNavigate(browserState.currentUrl, false); });
+$('brBackBtn').addEventListener('click', function(){ if(browserState.idx>0){ browserState.idx--; browserNavigate(browserState.stack[browserState.idx], false); } });
+$('brFwdBtn').addEventListener('click', function(){ if(browserState.idx<browserState.stack.length-1){ browserState.idx++; browserNavigate(browserState.stack[browserState.idx], false); } });
+$('brViewSourceBtn').addEventListener('click', function(){ var w=$('brSourceWrap'); w.style.display = w.style.display==='none'?'':'none'; });
+$('brToRepeaterBtn').addEventListener('click', function(){ var e=state.history.filter(function(x){return x.id===browserState.currentEntryId;})[0]; if(e){ loadIntoRepeater(e.id); showView('repeater'); } else toast('Load a page first'); });
+$('brViewport').addEventListener('click', function(ev){ var a=ev.target.closest('[data-ss-link]'); if(a){ ev.preventDefault(); browserNavigate(a.getAttribute('data-ss-link')); } });
+document.addEventListener('click', function(ev){ var o=ev.target.closest('[data-br-open]'); if(o){ showView('browser'); browserNavigate(o.dataset.brOpen); return; } var r=ev.target.closest('[data-br-rep]'); if(r){ setRepeater('GET', r.dataset.brRep, {}, ''); showView('repeater'); } });
+$('brViewport').addEventListener('submit', async function(ev){
+  ev.preventDefault(); var f=ev.target; var action=f.getAttribute('data-ss-action')||browserState.currentUrl; var method=(f.getAttribute('data-ss-method')||'GET').toUpperCase();
+  var fd=new FormData(f); var params=new URLSearchParams(); fd.forEach(function(v,k){ params.append(k, String(v)); });
+  var entry;
+  if(method==='GET'){ var u=action+(action.indexOf('?')>-1?'&':'?')+params.toString(); entry=await doFetch({ method:'GET', url:u, headers:{}, source:'browser-form' }); browserState.stack=browserState.stack.slice(0,browserState.idx+1); browserState.stack.push(u); browserState.idx=browserState.stack.length-1; }
+  else { entry=await doFetch({ method:method, url:action, headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:params.toString(), source:'browser-form' }); browserState.stack=browserState.stack.slice(0,browserState.idx+1); browserState.stack.push(action); browserState.idx=browserState.stack.length-1; }
+  renderFetchedPage(entry); toast('Form submitted through the engine and logged');
+});
+/* Crawler */
+var crawlState={ running:false, results:[] };
+async function runCrawl(startUrl, maxDepth, maxPages, sameHost){
+  startUrl=normalizeUrl(startUrl); if(!startUrl){ toast('Enter a start URL'); return []; }
+  crawlState.running=true; crawlState.results=[]; $('crStartBtn').disabled=true; $('crStopBtn').disabled=false;
+  var startHost=hostOf(startUrl); var visited={}; var queue=[{url:startUrl, depth:0}]; visited[startUrl]=true;
+  while(queue.length && crawlState.results.length<maxPages && crawlState.running){
+    var item=queue.shift();
+    $('crStatus').textContent='Crawling '+crawlState.results.length+' / '+maxPages+': '+item.url;
+    var entry=await doFetch({ method:'GET', url:item.url, headers:{}, source:'crawler' });
+    crawlState.results.push({ url:item.url, status:entry.status, error:entry.error, depth:item.depth, id:entry.id, via:entry.via });
+    renderCrawlResults(); $('crProgress').style.width=Math.min(100, Math.round(crawlState.results.length/maxPages*100))+'%';
+    if(!entry.error && item.depth<maxDepth){ var ex=extractPage(entry.respBody||'', item.url); ex.links.forEach(function(l){ var clean=l.split('#')[0]; if(clean && !visited[clean] && (!sameHost || hostOf(clean)===startHost)){ visited[clean]=true; queue.push({ url:clean, depth:item.depth+1 }); } }); }
+    await new Promise(function(r){ setTimeout(r, 130); });
+  }
+  crawlState.running=false; $('crStartBtn').disabled=false; $('crStopBtn').disabled=true;
+  $('crStatus').textContent='Done: '+crawlState.results.length+' page(s) crawled, all logged to Proxy History and the Dashboard site map.';
+  refreshAll(); renderCrawlResults(); return crawlState.results;
+}
+function renderCrawlResults(){
+  $('crResults').innerHTML = crawlState.results.length? crawlState.results.map(function(r){ return '<div class="logline"><span class="pill grey">d'+r.depth+'</span><span class="mono url-text grow">'+esc(r.url)+'</span>'+(r.error?'<span class="pill r">'+(r.via==='relay'?'Relay error':'Blocked')+'</span>':'<span class="pill '+(r.status<300?'g':r.status<400?'y':'r')+'">'+r.status+'</span>')+(r.via?' <span class="pill grey">'+esc(r.via)+'</span>':'')+'<button class="btn sm" data-send-rep="'+r.id+'" type="button">Repeater</button></div>'; }).join('') : '';
+}
+$('crStartBtn').addEventListener('click', function(){ runCrawl($('crUrl').value, +$('crDepth').value||2, +$('crMax').value||25, $('crSameHost').checked); });
+$('crStopBtn').addEventListener('click', function(){ crawlState.running=false; });
+
+/* ---------- Proxy Bridge ---------- */
+var BRIDGE_PY = [
+'#!/usr/bin/env python3',
+'"""SecuritySuite Proxy Bridge - single file, stdlib only.',
+'Proxy on :8080 records traffic from devices that set it as their WiFi proxy.',
+'Control API on :8899 serves captures to the SecuritySuite page (CORS open).',
+'HTTP is captured in full. HTTPS is tunnelled via CONNECT: hostnames only.',
+'Ctrl+C saves capture.har (import it in SecuritySuite > Proxy if live sync is off)."""',
+'import json, secrets, socket, sys, threading, time',
+'from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer',
+'from urllib.parse import urlparse, parse_qs',
+'import http.client',
+'',
+'TOKEN = sys.argv[1] if len(sys.argv) > 1 else secrets.token_hex(8)',
+'CAPTURES = []',
+'LOCK = threading.Lock()',
+'',
+'def record(entry):',
+'    entry["id"] = str(int(time.time()*1000)) + "-" + str(len(CAPTURES))',
+'    entry["time"] = time.strftime("%H:%M:%S")',
+'    with LOCK: CAPTURES.append(entry)',
+'    print("[bridge]", entry["method"], entry["url"], "->", entry.get("status"))',
+'',
+'class ProxyHandler(BaseHTTPRequestHandler):',
+'    protocol_version = "HTTP/1.1"',
+'    def log_message(self, *a): pass',
+'    def _proxy(self):',
+'        url = self.path',
+'        length = int(self.headers.get("Content-Length") or 0)',
+'        body = self.rfile.read(length) if length else b""',
+'        u = urlparse(url)',
+'        host = u.hostname or self.headers.get("Host", "")',
+'        port = u.port or 80',
+'        path = (u.path or "/") + (("?" + u.query) if u.query else "")',
+'        hdrs = {k: v for k, v in self.headers.items() if k.lower() not in ("proxy-connection", "connection")}',
+'        try:',
+'            conn = http.client.HTTPConnection(host, port, timeout=20)',
+'            conn.request(self.command, path, body=body or None, headers=hdrs)',
+'            res = conn.getresponse(); data = res.read()',
+'            status, rhdrs = res.status, dict(res.getheaders())',
+'        except Exception as e:',
+'            status, rhdrs, data = 502, {}, ("Bridge upstream error: " + str(e)).encode()',
+'        record({"method": self.command, "url": url, "headers": hdrs,',
+'                "body": body.decode("utf-8", "replace"), "status": status,',
+'                "statusText": "", "respHeaders": rhdrs,',
+'                "respBody": data.decode("utf-8", "replace")[:200000]})',
+'        self.send_response(status)',
+'        for k, v in rhdrs.items():',
+'            if k.lower() not in ("transfer-encoding", "connection"): self.send_header(k, v)',
+'        self.send_header("Content-Length", str(len(data))); self.end_headers()',
+'        if self.command != "HEAD": self.wfile.write(data)',
+'    do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = do_OPTIONS = _proxy',
+'    def do_CONNECT(self):',
+'        host = self.path',
+'        record({"method": "CONNECT", "url": "https://" + host, "headers": {}, "body": "",',
+'                "status": 200, "statusText": "Tunnelled (host only)", "respHeaders": {}, "respBody": ""})',
+'        try:',
+'            h, _, p = host.partition(":"); upstream = socket.create_connection((h, int(p) if p else 443), timeout=20)',
+'            self.send_response(200, "Connection Established"); self.end_headers()',
+'            self.connection.setblocking(False); upstream.setblocking(False)',
+'            import select',
+'            socks = [self.connection, upstream]',
+'            while True:',
+'                r, _, x = select.select(socks, [], socks, 30)',
+'                if x or not r: break',
+'                for s in r:',
+'                    data = s.recv(65536)',
+'                    if not data: return',
+'                    (upstream if s is self.connection else self.connection).sendall(data)',
+'        except Exception:',
+'            try: self.send_response(502); self.end_headers()',
+'            except Exception: pass',
+'',
+'class ControlHandler(BaseHTTPRequestHandler):',
+'    def log_message(self, *a): pass',
+'    def _authed(self):',
+'        q = parse_qs(urlparse(self.path).query)',
+'        return q.get("token", [""])[0] == TOKEN or self.headers.get("X-Bridge-Token") == TOKEN',
+'    def _cors(self):',
+'        origin = self.headers.get("Origin")',
+'        if origin: self.send_header("Access-Control-Allow-Origin", origin)',
+'        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")',
+'        self.send_header("Access-Control-Allow-Headers", "*")',
+'    def do_OPTIONS(self): self.send_response(204); self._cors(); self.end_headers()',
+'    def do_GET(self):',
+'        if (self.path.startswith("/captures") or self.path.startswith("/capture.har")) and not self._authed():',
+'            data = b"{\\"error\\": \\"missing or wrong bridge token\\"}"',
+'            self.send_response(403); self.send_header("Content-Type", "application/json")',
+'            self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data); return',
+'        if self.path.startswith("/captures"):',
+'            with LOCK: data = json.dumps({"captures": CAPTURES}).encode()',
+'            self.send_response(200); self._cors(); self.send_header("Content-Type", "application/json")',
+'        elif self.path.startswith("/capture.har"):',
+'            entries = [{"request": {"method": c["method"], "url": c["url"],',
+'                "headers": [{"name": k, "value": v} for k, v in c["headers"].items()],',
+'                "postData": {"text": c["body"]}},',
+'                "response": {"status": c.get("status") or 0, "statusText": c.get("statusText", ""),',
+'                "headers": [{"name": k, "value": v} for k, v in c.get("respHeaders", {}).items()],',
+'                "content": {"text": c.get("respBody", "")}}} for c in CAPTURES]',
+'            data = json.dumps({"log": {"entries": entries}}).encode()',
+'            self.send_response(200); self._cors(); self.send_header("Content-Type", "application/json")',
+'        else:',
+'            data = b"SecuritySuite Bridge running. GET /captures or /capture.har"',
+'            self.send_response(200); self._cors(); self.send_header("Content-Type", "text/plain")',
+'        self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data)',
+'',
+'def lan_ip():',
+'    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)',
+'    try: s.connect(("8.8.8.8", 80)); return s.getsockname()[0]',
+'    except Exception: return "127.0.0.1"',
+'    finally: s.close()',
+'',
+'if __name__ == "__main__":',
+'    ip = lan_ip()',
+'    print("SecuritySuite Proxy Bridge")',
+'    print("  Proxy:    set phone WiFi proxy to", ip, "port 8080")',
+'    print("  Live API: http://" + ip + ":8899  -  Bridge token: " + TOKEN)',
+'    print("  In SecuritySuite > Capture, enter that address and token. /captures refuses requests without the token.")',
+'    threading.Thread(target=ThreadingHTTPServer(("0.0.0.0", 8899), ControlHandler).serve_forever, daemon=True).start()',
+'    try: ThreadingHTTPServer(("0.0.0.0", 8080), ProxyHandler).serve_forever()',
+'    except KeyboardInterrupt:',
+'        entries = [{"request": {"method": c["method"], "url": c["url"], "headers": [{"name": k, "value": v} for k, v in c["headers"].items()], "postData": {"text": c["body"]}}, "response": {"status": c.get("status") or 0, "statusText": c.get("statusText", ""), "headers": [{"name": k, "value": v} for k, v in c.get("respHeaders", {}).items()], "content": {"text": c.get("respBody", "")}}} for c in CAPTURES]',
+'        open("capture.har", "w").write(json.dumps({"log": {"entries": entries}}, indent=1))',
+'        print("Saved capture.har with", len(CAPTURES), "entries. Bye.")',
+''
+].join('\n');
+$('bridgeCode').textContent = BRIDGE_PY;
+$('bridgeDownloadBtn').addEventListener('click', function(){ download('securitysuite_bridge.py', BRIDGE_PY, 'text/x-python'); toast('Bridge script downloaded'); });
+$('bridgeCopyBtn').addEventListener('click', function(){ copyText(BRIDGE_PY, 'Bridge script copied'); });
+var bridgeState={ timer:null, seen:{}, count:0 };
+async function bridgePoll(){
+  var base=$('bridgeUrl').value.replace(/\/$/,'');
+  try{
+    var tok=($('bridgeToken').value||'').trim(); if(!tok) throw new Error('enter the bridge token printed by the script');
+    var res=await fetch(base+'/captures', { headers:{ 'X-Bridge-Token': tok } }); if(!res.ok) throw new Error(res.status===403?'HTTP 403: token rejected by the Bridge':'HTTP '+res.status);
+    var j=await res.json(); var caps=j.captures||[]; var fresh=[];
+    caps.forEach(function(c){ var key=c.id||(c.method+c.url+c.time); if(!bridgeState.seen[key]){ bridgeState.seen[key]=true; fresh.push({ method:c.method, url:c.url, headers:c.headers||{}, body:c.body||'', status:c.status, statusText:c.statusText||'', respHeaders:c.respHeaders||{}, respBody:c.respBody||'' }); } });
+    if(fresh.length){ importEntries(fresh, 'proxy-bridge'); bridgeState.count+=fresh.length; $('bridgeCount').textContent=bridgeState.count; }
+    $('bridgeLastSync').textContent=nowTime()+' · '+caps.length+' on bridge';
+    $('bridgeMsg').textContent='Connected. Polling every 3s; new captures import automatically.';
+    $('bridgeStatusPill').textContent='Bridge: connected'; $('bridgeStatusPill').className='pill g';
+  }catch(e){ $('bridgeMsg').textContent='Cannot reach the Bridge at '+base+' ('+e.message+'). Is the script running, and is this the right IP? HAR import still works.'; $('bridgeStatusPill').textContent='Bridge: unreachable'; $('bridgeStatusPill').className='pill r'; }
+}
+$('bridgeConnectBtn').addEventListener('click', function(){ if(bridgeState.timer) clearInterval(bridgeState.timer); bridgePoll(); bridgeState.timer=setInterval(bridgePoll, 3000); $('bridgeDisconnectBtn').disabled=false; $('bridgeConnectBtn').textContent='Reconnect'; toast('Connecting to Bridge…'); });
+$('bridgeDisconnectBtn').addEventListener('click', function(){ if(bridgeState.timer) clearInterval(bridgeState.timer); bridgeState.timer=null; $('bridgeDisconnectBtn').disabled=true; $('bridgeStatusPill').textContent='Bridge: not connected'; $('bridgeStatusPill').className='pill o'; $('bridgeMsg').textContent='Disconnected. Captures already imported stay in Proxy History.'; });
+
+/* ---------- Global wiring & init ---------- */
+function refreshAll(){ renderDashboard(); renderProxy(); renderScanner(); renderCollections(); renderRepHistory(); renderTransportUI(); }
+$('interceptToggle').addEventListener('change', function(){ $('interceptLabel').textContent = this.checked?'ON':'OFF'; $('interceptLabel').className='pill '+(this.checked?'o':'grey'); toast('Intercept '+(this.checked?'ON: Repeater sends will pause in the Proxy queue':'OFF')); });
+/* Transport wiring */
+$$('#transportSeg button').forEach(function(b){ b.addEventListener('click', function(){ setTransport(b.dataset.transport); }); });
+$$('.transport-mirror').forEach(function(s){ s.addEventListener('change', function(){ setTransport(s.value); }); });
+var apiTransportSel=$('apiTransportSelect'); if(apiTransportSel) apiTransportSel.addEventListener('change', function(){ setTransport(this.value); });
+var relayInput=$('relayEndpointInput'); if(relayInput) relayInput.addEventListener('change', function(){ state.relayEndpoint=(this.value||'/api/fetch').trim()||'/api/fetch'; if(window.SecuritySuite) window.SecuritySuite.relayEndpoint; toast('Relay endpoint: '+state.relayEndpoint); setRelayHealth('unknown'); });
+function init(){
+  setRepeater('GET','',{},'');
+  $('intPayloads').value = PAYLOAD_SETS.sqli.join('\n'); updatePosCount();
+  state.transport='relay'; if(relayInput) state.relayEndpoint=relayInput.value||'/api/fetch';
+  refreshAll(); renderTransportUI();
+}
+init();
+</script>
+</body>
+</html>

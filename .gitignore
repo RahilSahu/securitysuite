@@ -1,0 +1,5 @@
+android/signing.keystore
+android/build/
+*.apk
+.vercel
+node_modules
