@@ -21,6 +21,9 @@ public class Entry {
 
     public int state = STATE_COMPLETED;
     public Integer status;
+    public String note2; // user annotation note
+    public int highlight = 0; // 0 none, 1 red, 2 yellow, 3 green, 4 blue
+    public String orgStatus = "New";
     public List<String[]> respHeaders = new ArrayList<>();
     public String respBodyText;
     public String error;

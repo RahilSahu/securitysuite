@@ -9,6 +9,7 @@ import java.util.List;
 // Intercept skip / scope rules, Burp-style: matching requests are forwarded
 // automatically without being held, but are still logged in History.
 public class Rules {
+    public static boolean enabled = true;
     public static List<String> skipHosts = new ArrayList<>();
     public static List<String> skipIps = new ArrayList<>();
     public static List<String> skipPaths = new ArrayList<>();
@@ -17,6 +18,7 @@ public class Rules {
     public static List<String> onlyHosts = new ArrayList<>(); // scope: if non-empty, hold only these
 
     public static void load(SharedPreferences p) {
+        enabled = p.getBoolean("rulesEnabled", true);
         skipHosts = split(p.getString("skipHosts", ""));
         skipIps = split(p.getString("skipIps", ""));
         skipPaths = split(p.getString("skipPaths", ""));
@@ -27,6 +29,7 @@ public class Rules {
 
     public static void save(SharedPreferences p) {
         SharedPreferences.Editor ed = p.edit();
+        ed.putBoolean("rulesEnabled", enabled);
         ed.putString("skipHosts", join(skipHosts));
         ed.putString("skipIps", join(skipIps));
         ed.putString("skipPaths", join(skipPaths));
@@ -94,6 +97,7 @@ public class Rules {
 
     // Returns a human reason if this entry should NOT be held, or null if it may be held.
     public static String skipReason(Entry e) {
+        if (!enabled) return null;
         String host = "";
         String path = "";
         try {

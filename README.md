@@ -50,7 +50,16 @@ All calls return JSON. Agents can also read the full API reference from the Agen
 
 ## Android app
 
-`android/` contains a native Android app (single Activity, no dependencies): a Suite tab with the full web app, a Chromium WebView browser tab, and a Captures tab that logs every request the browser makes (method, URL, headers, HTTP errors), with JSON export.
+`android/` contains a native Android app (single Activity, no dependencies), currently v4.0. It is a Burp-inspired mobile toolkit built around its own intercepting HTTP engine (the WebView's requests are fetched by the app itself, so full request and response bodies are visible and editable):
+
+- **Browser tab**: split screen, Chromium browser on top, interceptor panel always visible below it. Intercept on/off, Smart/All scope, Forward / Forward All / Drop / Drop All, request editing while held, Split / Browser / Panel view modes.
+- **History**: every request from every tool, with search and filtering, status-code and annotation colour coding, JSON export.
+- **Intruder**: section-sign payload positions in URL and body, Sniper / Battering Ram / Pitchfork / Cluster Bomb attack types, two payload sets, built-in number / SQLi / XSS / traversal lists, Grep-Match flagging, delay control, 200-request cap, tap any result for the full response.
+- **Repeater**: manual request crafting and re-sending.
+- **Tools**: Decoder (Base64, URL, HTML, Hex, Octal, Binary, GZIP, JWT decode with claim checks, MD5 / SHA-1 / SHA-256 / SHA-512, recursive Smart Decode), Comparer (word and byte diff), Sequencer (repeated token capture with uniqueness, entropy and predictability analysis), passive Scanner (security headers, cookie flags, CORS, version disclosure, secret patterns), Site Map grouped by host, and an OAST payload generator for your own out-of-band server.
+- **Rules**: skip hosts (with wildcards), IPs / CIDRs, paths, extensions and methods, scope-only hosts, match and replace for requests and responses, plus settings for an upstream proxy, User-Agent override and timeout.
+- **Annotations and Organizer**: highlight colours, notes and New / In Progress / Done / Ignored status on any history item.
+- **Suite tab**: the full web app, live.
 
 Build it with JDK 17 and Android build-tools 34 on the path:
 
@@ -58,7 +67,9 @@ Build it with JDK 17 and Android build-tools 34 on the path:
 cd android && ./build.sh
 ```
 
-This produces a signed `SecuritySuite.apk` for sideloading (the signing keystore is generated locally and git-ignored). Note: Android WebView does not expose POST bodies or response bodies for pages it loads itself, use the Relay / Repeater for full bodies.
+This produces a signed `SecuritySuite.apk` for sideloading (the signing keystore is generated locally and git-ignored).
+
+Honest limits: only the app's own browser traffic is captured, not other apps' traffic. PATCH requests pass through natively (Android's HTTP engine cannot send them, entry is request-line only). Out-of-band (Collaborator-style) detection needs a server, so the app only generates payloads for an OAST server you run yourself; nothing is faked. The passive Scanner does not pretend to be a full active vulnerability scanner; active testing is done with Intruder and your own payloads.
 
 ## Deploy your own
 

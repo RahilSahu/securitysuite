@@ -25,12 +25,26 @@ public class Engine {
 
     private static final int MAX_STORE_CHARS = 256 * 1024;
 
+    // User settings (Settings section in Rules tab)
+    public static String upstreamHost = "";
+    public static int upstreamPort = 0;
+    public static String uaOverride = "";
+    public static int timeoutSec = 20;
+
     // Performs the entry's request with our own HTTP engine and fills in the response.
     public static Result fetch(Entry e) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(e.url).openConnection();
+        HttpURLConnection conn;
+        if (upstreamHost != null && !upstreamHost.isEmpty() && upstreamPort > 0) {
+            java.net.Proxy proxy = new java.net.Proxy(java.net.Proxy.Type.HTTP,
+                    new java.net.InetSocketAddress(upstreamHost, upstreamPort));
+            conn = (HttpURLConnection) new URL(e.url).openConnection(proxy);
+        } else {
+            conn = (HttpURLConnection) new URL(e.url).openConnection();
+        }
         conn.setInstanceFollowRedirects(false);
         conn.setConnectTimeout(15000);
-        conn.setReadTimeout(20000);
+        conn.setReadTimeout(Math.max(5, timeoutSec) * 1000);
+        if (uaOverride != null && !uaOverride.isEmpty()) conn.setRequestProperty("User-Agent", uaOverride);
         setMethod(conn, e.method);
 
         CookieManager cm = CookieManager.getInstance();

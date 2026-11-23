@@ -17,7 +17,7 @@ echo "== link =="
 $BT/aapt2 link -o build/unsigned.apk -I "$AJAR" --manifest AndroidManifest.xml build/compiled/res.zip
 
 echo "== javac =="
-javac --release 8 -cp "$AJAR" -d build/classes $(find src -name "*.java")
+javac -encoding UTF-8 --release 8 -cp "$AJAR" -d build/classes $(find src -name "*.java")
 
 echo "== dex =="
 $BT/d8 --lib "$AJAR" --output build/dex $(find build/classes -name "*.class")
