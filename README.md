@@ -61,7 +61,9 @@ All calls return JSON. Agents can also read the full API reference from the Agen
 - **Annotations and Organizer**: highlight colours, notes and New / In Progress / Done / Ignored status on any history item.
 - **Suite tab**: the full web app, live.
 
-Build it with JDK 17 and Android build-tools 34 on the path:
+**Prebuilt APK:** `android/SecuritySuite.apk` (v4.1, signed for sideloading; installs over earlier versions as an update). Also attached to the [v4.1 release](https://github.com/RahilSahu/securitysuite/releases/tag/v4.1).
+
+Build it yourself with JDK 17 and Android build-tools 34 on the path:
 
 ```bash
 cd android && ./build.sh
